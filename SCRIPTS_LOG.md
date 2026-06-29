@@ -5,8 +5,10 @@
 
 ## Scripts créés
 
-_Aucun script créé pour le moment._
+| # | Dossier | Catégorie | Description | Date |
+|---|---------|-----------|-------------|------|
+| 1 | `187-braquage` | Crime & Action | Braquage de banque en 5 phases : hacking, coffre, collecte billets, fuite chronométrée | 2026-06-29 |
 
 ---
 
-**Total : 0 script(s)**
+**Total : 1 script(s)**

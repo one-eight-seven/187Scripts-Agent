@@ -12,7 +12,7 @@ Quand l'utilisateur te dit **"crée un script"** ou **"génère"** sans précise
 
 **Après avoir généré tous les fichiers**, tu mets à jour `SCRIPTS_LOG.md` en ajoutant une ligne dans le tableau avec :
 - Le numéro (incrémenté)
-- Le nom du script (ex: `187-garage`)
+- Le nom du script (ex: `187Garage`) — format obligatoire : `187NomSansTiret` en PascalCase après le préfixe
 - La catégorie
 - Une description courte de ce qu'il fait
 - La date de création
@@ -20,7 +20,7 @@ Quand l'utilisateur te dit **"crée un script"** ou **"génère"** sans précise
 ### Format d'entrée dans le log
 
 ```markdown
-| #N | `nom-du-dossier` | Catégorie | Description courte | YYYY-MM-DD |
+| #N | `187NomScript` | Catégorie | Description courte | YYYY-MM-DD |
 ```
 
 ### Exemple de log rempli
@@ -30,8 +30,8 @@ Quand l'utilisateur te dit **"crée un script"** ou **"génère"** sans précise
 
 | # | Dossier | Catégorie | Description | Date |
 |---|---------|-----------|-------------|------|
-| 1 | `187-garage` | Véhicules | Garage avancé avec catégories, état et réparation | 2026-06-29 |
-| 2 | `187-livreur` | Emplois | Job livreur de pizza avec minimap et timer | 2026-06-29 |
+| 1 | `187Garage` | Véhicules | Garage avancé avec catégories, état et réparation | 2026-06-29 |
+| 2 | `187Livreur` | Emplois | Job livreur de pizza avec minimap et timer | 2026-06-29 |
 
 ---
 
@@ -44,16 +44,16 @@ Tu mets aussi à jour la ligne `**Total : X script(s)**` à chaque ajout.
 
 ## Publication GitHub — commandes à fournir après chaque script
 
-Tu ne touches pas à Git toi-même. À la fin de chaque génération, tu affiches ce bloc prêt à copier-coller, en remplaçant `nom-du-dossier` par le nom réel du script :
+Tu ne touches pas à Git toi-même. À la fin de chaque génération, tu affiches ce bloc prêt à copier-coller, en remplaçant `187NomScript` par le nom réel du script (format `187NomScript`) :
 
 ```
 Commandes à exécuter pour publier sur GitHub :
 
-cd C:\Users\USER\Downloads\fivem-scripts\nom-du-dossier
+cd C:\Users\USER\Downloads\fivem-scripts\187NomScript
 git init
 git add .
 git commit -m "feat: initial release [187Scripts]"
-gh repo create one-eight-seven/nom-du-dossier --public --source=. --remote=origin --push
+gh repo create one-eight-seven/187NomScript --public --source=. --remote=origin --push
 ```
 
 Tu affiches ce bloc **après** avoir mis à jour `SCRIPTS_LOG.md`, à la toute fin de ta réponse, dans une section intitulée `## Publier sur GitHub`.
@@ -111,7 +111,7 @@ Choisis l'idée la plus fun et la moins commune. Annonce ton choix avec une cour
 
 Chaque ressource avec UI doit copier `_187design/` dans `html/lib/` :
 ```
-ma-resource/
+187NomScript/
 └── html/
     ├── lib/
     │   ├── 187.css   ← copié depuis _187design/
@@ -172,6 +172,7 @@ ma-resource/
 ### Règles visuelles strictes
 
 1. **Fond du body** : toujours `background: transparent` — le jeu est visible derrière
+0. **INTERDIT** : `backdrop-filter` et `-webkit-backdrop-filter` — non supporté dans FiveM (CEF). Le design system utilise des fonds sombres semi-opaques à la place. Ne jamais ajouter ces propriétés.
 2. **Panel** : utiliser la classe `.panel` du design system, jamais de style inline custom
 3. **Boutons** : `.btn.btn-primary` pour l'action principale, `.btn.btn-secondary` pour annuler
 4. **Listes** : `.item-list` + `.item` avec `.item-icon` + `.item-name` + `.item-sub`
@@ -185,7 +186,7 @@ ma-resource/
 ## Architecture des fichiers
 
 ```
-nom-resource/
+187NomScript/
 ├── fxmanifest.lua
 ├── config.lua
 ├── server/
