@@ -41,49 +41,325 @@ The project at `L:\Infinite\server\resources\[framework]\infinite` is an existin
 
 > **Critical distinction**: this base is a **mini-game framework** (races, ranked modes, kill-feeds, leaderboards). 187Scripts are exclusively **RP scripts**. Never borrow game design, modes, or mini-game concepts from it — only borrow implementation techniques.
 
-### What to read and when
+### Quick lookup table
 
 | Need | File to read |
 |------|-------------|
-| DUI (HTML rendered in 3D world) | `common/utils/client/dui.lua` |
+| DUI — HTML rendered in 3D world | `common/utils/client/dui.lua` |
 | Animation helpers | `common/utils/client/animation.lua` |
 | Audio / sound helpers | `common/utils/client/audio.lua` |
 | Blip management | `common/utils/client/blips.lua` |
-| Camera control | `common/utils/client/cam.lua` |
+| Named camera + smooth blend | `common/utils/client/cam.lua` |
 | On-screen instructional buttons | `common/utils/client/instructional_buttons.lua` |
 | Marker helpers | `common/utils/client/marker.lua` |
-| Scaleform utilities | `common/utils/client/scaleform.lua` |
+| Scaleform low-level | `common/utils/client/scaleform.lua` |
+| Scaleform high-level screens | `common/utils/client/scaleform_functions.lua` |
 | Timer utilities | `common/utils/client/timer.lua` |
-| Zone management | `common/utils/server/zone.lua` |
+| Polygon zone system | `common/utils/client/squareArea.lua` |
+| OOP chainable ped builder | `common/utils/client/peds.lua` |
+| Single ped spawn / model load | `common/utils/client/ped.lua` |
+| NUI text input modal | `common/utils/client/inputs.lua` |
+| All notification types | `common/utils/client/notification.lua` |
+| HUD / minimap manager | `common/utils/client/hub.lua` |
+| Hold-to-confirm mechanic | `common/utils/client/pressedtimetouch.lua` |
+| Screen fade with loading text | `common/utils/client/natives.lua` |
+| Floating nametags above players | `common/utils/client/gamertag.lua` |
+| Free-cam / spectator system | `common/utils/client/specmode.lua` |
+| Raycast from camera + 3D text | `common/utils/client/laser.lua` |
+| Damage number feedback | `common/utils/client/hitmarker.lua` |
+| Weather + time sync | `common/utils/client/weather.lua` |
+| Compass heading HUD | `common/utils/client/compass.lua` |
+| Full-screen text overlay | `common/utils/client/informations.lua` |
+| Weapon recoil override | `common/utils/client/recoil.lua` |
+| Routing bucket wrapper | `common/utils/server/bucketmanager.lua` |
+| Server-side player mute | `common/utils/server/voice.lua` |
+| Raycast context menu (ox_target style) | `addons/contextmenu/client/target.lua` |
+
+---
 
 ### DUI — HTML displayed in the 3D world
 
-The DUI system renders any HTML page as a texture on a 3D plane in the game world (e.g. a screen on a wall, a billboard, a hologram). Use it when a script benefits from an in-world display rather than a standard NUI overlay.
+Renders any HTML page as a texture on a 3D plane in the world (ATM screen, police board, hologram, wanted poster).
 
 ```lua
--- Create a DUI surface in the world
 local screen = DUI:new({
     url    = 'nui://187ScriptName/html/dist/dui.html',
-    width  = 1280,
-    height = 720,
-    pos    = vector3(x, y, z),   -- world position
+    width  = 1280, height = 720,
+    pos    = vector3(x, y, z),
     rot    = vector3(0.0, 0.0, heading),
     scale  = vector3(4.0, 2.0, 1.0)
 })
-
--- In a render thread (Wait(0)):
+-- render thread (Wait(0)):
 screen:draw()
-
--- Send data to the DUI page (same as SendNUIMessage)
+-- push data like SendNUIMessage:
 SendDuiMessage(screen.duiObject, json.encode({ action = 'update', data = payload }))
-
--- Cleanup
-screen:destroy()
+screen:destroy() -- on cleanup
 ```
 
-The DUI HTML page is a separate minimal page (not the main NUI panel) — it receives messages via `window.addEventListener('message', ...)` exactly like a standard NUI page.
+---
 
-**Good RP use cases for DUI**: ATM screen, shop display, police board, wanted poster, job briefing board, scoreboard on a wall, surveillance camera feed.
+### Scaleform screens — GTA-native mission UI
+
+Full library of GTA's built-in full-screen overlays. Zero custom HTML needed.
+
+```lua
+-- Job payout wall (heist-style: stats + cash counter + XP bar)
+Scaleform.ShowHeist(
+    "Mission Complete",
+    { { name = "Deliveries", value = 12 }, { name = "Time", value = "4:32" } },
+    money,  -- cash amount shown with counter animation
+    xp      -- XP amount
+)
+Scaleform.V.showHeistBanner = true   -- start render loop
+Citizen.Wait(6000)
+Scaleform.V.showHeistBanner = false  -- stop
+
+-- Countdown (synchronized timed events)
+Scaleform.ShowCountdown(3, 255, 100, 0)   -- 3-2-1 in orange
+Scaleform.V.showST = true
+Citizen.Wait(4000)
+Scaleform.V.showST = false
+
+-- Results panel (multi-player outcome)
+Scaleform.ShowResultsPanel("Heist Results", "Downtown Bank", {
+    { label = "Cash stolen",   value = "$42,000" },
+    { label = "Guards killed", value = "3" }
+})
+
+-- Mission briefing info panel
+Scaleform.ShowMissionInfoPanel({ title = "New Contract", sub = "Meet the contact", text = "Head to the docks at midnight." }, x, y, w)
+
+-- GTA:O-style news feed notification (with texture)
+Scaleform.ShowGameFeed("WEAZEL NEWS", "BREAKING", "Armed robbery at Maze Bank", "weazel_news_logo", "tex_logo", false)
+
+-- Saving indicator
+Scaleform.ShowSaving("Saving progress...")
+Scaleform.V.toggleSave = true
+Citizen.Wait(2000)
+Scaleform.V.toggleSave = false
+```
+
+**RP use cases**: job payout screen, heist end results, countdown before an event starts, mission briefing panel, in-universe news broadcast.
+
+---
+
+### Peds OOP builder — chainable NPC spawning
+
+Spawn and configure NPCs in one fluent chain. Tag them by group for bulk cleanup.
+
+```lua
+-- Spawn a frozen, animated, hardened shop attendant
+Infinite.Peds:Spawn('g_m_y_lost_01', coords, 'myScript', false)
+    :SetHeading(180.0)
+    :Weapon('WEAPON_PISTOL')
+    :ApplyAnim('idle_shopkeeper')   -- key from Animations config
+    :FixPeds()                      -- invincible + frozen + no ragdoll
+    :Get(function(ped)
+        -- ped handle available here
+    end)
+
+-- Bulk delete all NPCs from this script on cleanup
+Infinite.Peds.DeletePedsByGame('myScript')
+
+-- Stop all hostile AI from attacking players (safe zone)
+Infinite.CalmPed(true)
+```
+
+---
+
+### Polygon zones — irregular territory / restricted areas
+
+Define a non-rectangular area by polygon vertices. Fires join/leave/tick callbacks.
+
+```lua
+local zone = Infinite.Zone.Rectangle:Create('myZone', {
+    vector2(100.0, 200.0),
+    vector2(150.0, 200.0),
+    vector2(150.0, 250.0),
+    vector2(100.0, 250.0),
+}, 5.0, {   -- height = 5m
+    onJoin  = function() lib.notify({ title = 'Zone', description = 'You entered.', type = 'inform' }) end,
+    onLeave = function() lib.notify({ title = 'Zone', description = 'You left.',    type = 'inform' }) end,
+    onInZone = function() -- called every tick while inside
+    end
+})
+
+zone:Draw({ r=255, g=0, b=0, a=80 }, true)      -- visible red perimeter
+local randomPos = zone:GetRandomCoordinate()     -- random spawn inside zone
+zone:Delete()                                    -- cleanup
+```
+
+**RP use cases**: gang territory boundaries, crime scene perimeter, restricted police zone, job activation area.
+
+---
+
+### NUI text input modal — in-game forms
+
+Blocks the Lua thread until the player submits or cancels. No external resource needed.
+
+```lua
+-- Single field
+local plate = Infinite.singleInput('License plate', 'ABC 123', 8, true)
+if not plate then return end  -- player cancelled
+
+-- Multi-field form
+local result = Infinite.multipleInputs(
+    { 'Company name', 'Phone number', 'Description' },
+    { 'My Corp',      '555-0100',     'We sell...'  },
+    { 32,             12,             128           },
+    true
+)
+if not result then return end
+-- result[1] = company name, result[2] = phone, result[3] = description
+```
+
+**RP use cases**: custom license plate, keypad PIN entry, business registration form, ransom note text.
+
+---
+
+### Notifications — full GTA notification suite
+
+```lua
+-- Floating world-positioned tooltip (attaches to 3D coords)
+Infinite.ShowFloatingHelpNotification('Press ~INPUT_CONTEXT~ to interact', coords)
+
+-- Persistent notification with ID (stays until removed)
+local notifId = math.random(100000, 999999)
+Infinite.ShowAdvancedLongNotification('DISPATCH', 'BOLO Active', 'Suspect: blue Schafter, plate XYZ123', 'commonmenu', 'shop_new_star', false, true, 6, notifId)
+-- later:
+Infinite.RemoveNotification(notifId)
+
+-- VS challenger popup (live ped headshots from both players)
+Infinite.ShowVSNotification(ped1, ped2, { r=255,g=0,b=0 }, { r=0,g=100,b=255 })
+```
+
+---
+
+### Hold-to-confirm — press and hold mechanic
+
+Blocks until the player holds a control for the full duration, or returns false on release.
+
+```lua
+-- Hold E for 2 seconds to handcuff
+local success = Infinite.PressedTimeTouch(38 --[[E]], 2000, function(progress)
+    -- optional: update a progress bar here
+end)
+if not success then
+    lib.notify({ title = 'Cancelled', type = 'error' })
+    return
+end
+-- apply handcuffs
+```
+
+**RP use cases**: handcuffing, hacking terminal, pickpocketing, defusing a bomb, planting a tracker.
+
+---
+
+### Screen fade with loading text
+
+Pairs the native screen fade with a NUI black overlay so there is no flash between them.
+
+```lua
+Infinite.DoScreenFadeOut(500, 'Loading interior...')
+-- teleport, change scene, etc.
+Citizen.Wait(600)
+Infinite.DoScreenFadeIn(500)
+```
+
+---
+
+### Floating nametags — faction / health tags
+
+Displays a GTA MP-style gamer tag above a player with optional live health bar and admin badge.
+
+```lua
+-- Show tags above a filtered list of players (e.g. same gang)
+local tags = Infinite.onRequestGamerTags(playerHandles, { health = true, admin = false })
+
+-- Show above one specific player
+Infinite.onRequestGamerTagsForSpecificPlayer(playerPedHandle, { health = true })
+
+-- Remove all
+Infinite.StopAllGamerTags()
+```
+
+**RP use cases**: gang member recognition, EMS patient health bar, admin overlay.
+
+---
+
+### Named cameras — cinematic cuts
+
+```lua
+-- Cut to a scripted camera pointing at an entity, blend in 1500ms
+local cam = Infinite.createCam('briefingCam', npcPedHandle, vector3(x, y, z))
+Citizen.Wait(5000)
+Infinite.deleteCam('briefingCam')  -- returns to player camera
+```
+
+---
+
+### Raycast from camera — "look at to interact"
+
+```lua
+-- Fire a ray from camera center, returns hit entity + world coords
+local hit, coords, entity = Target:RayCastGamePlayCamera(5.0)
+if hit and entity ~= 0 then
+    -- entity is whatever the player is looking at
+end
+
+-- Full probe with material hash + surface normal
+local hit, worldPos, normal, entity, material = Target:TargetCoords(
+    { x = 0.5, y = 0.5 },  -- screen center
+    10.0,                   -- max distance
+    -1,                     -- flags (all)
+    cache.ped               -- ignore self
+)
+```
+
+**RP use cases**: inspect prop, pick up item, talk to NPC, aim-to-execute mechanic.
+
+---
+
+### Routing buckets — private instances
+
+```lua
+-- Server-side: isolate a player in a private instance
+Infinite.SetPlayerBucket(source, bucketId)   -- move to bucket
+Infinite.SetPlayerBucket(source, 0)          -- return to main world
+local bucket = Infinite.GetPlayerBucket(source)
+```
+
+**RP use cases**: apartment interior, heist instance, private meeting room, hospital ward.
+
+---
+
+### Weather & time — server-controlled events
+
+```lua
+-- Server pushes weather state to all clients
+TriggerClientEvent('infinite:weather:sync', -1, {
+    weather     = 'THUNDER',
+    hour        = 2, minute = 0, second = 0,
+    freezeTime    = true,   -- lock clock at 2:00 AM
+    freezeWeather = true    -- lock weather until next push
+})
+-- Restore after event:
+TriggerClientEvent('infinite:weather:sync', -1, { weather = 'CLEAR', freezeTime = false, freezeWeather = false, ... })
+```
+
+**RP use cases**: nighttime heist, storm disaster event, fog for a smuggling run.
+
+---
+
+### Voice — server-side mute
+
+```lua
+-- Server-side: mute a player (persists across reconnects via state bag)
+Infinite.mutePlayer(source, true)
+Infinite.mutePlayer(source, false)
+```
+
+**RP use cases**: mute dead players, silence spectators, interrogation room isolation.
 
 ---
 
