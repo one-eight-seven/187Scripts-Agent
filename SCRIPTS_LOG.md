@@ -7,8 +7,7 @@
 
 | # | Dossier | Catégorie | Description | Date |
 |---|---------|-----------|-------------|------|
-| 1 | `187-braquage` | Crime & Action | Braquage de banque en 5 phases : hacking, coffre, collecte billets, fuite chronométrée | 2026-06-29 |
 
 ---
 
-**Total : 1 script(s)**
+**Total : 0 script(s)**

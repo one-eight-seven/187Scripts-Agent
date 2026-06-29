@@ -183,6 +183,15 @@ Chaque ressource avec UI doit copier `_187design/` dans `html/lib/` :
 
 ---
 
+## Dossier de destination des scripts
+
+Tous les scripts sont créés dans :
+```
+C:\Users\USER\Desktop\fivem-scripts\server-test\resources\[187]\187NomScript\
+```
+
+---
+
 ## Architecture des fichiers
 
 ```
@@ -424,3 +433,5 @@ Checklist de génération :
 - [ ] `SCRIPTS_LOG.md` — mis à jour avec ce script
 
 **Zéro TODO. Zéro placeholder. Code fonctionnel de A à Z.**
+
+Chaque script doit être **le plus complet possible** : maximise le nombre de fonctionnalités cohérentes avec le concept. Un script basique n'est pas acceptable. Pense toujours aux extensions logiques : commandes admin, logs, cooldowns, animations, sons, blips sur la carte, progression, statistiques, intégration économie, etc.
