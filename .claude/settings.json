@@ -1,14 +1,23 @@
 {
   "permissions": {
     "allow": [
-      "Bash(git add *)",
-      "Bash(git commit *)",
-      "Bash(git push *)",
-      "Bash(git push)",
-      "Bash(git init)",
-      "Bash(gh repo create *)",
-      "Bash(mkdir -p *)",
-      "Bash(cp *)"
+      "Bash(git *)",
+      "Bash(gh *)",
+      "Bash(mkdir *)",
+      "Bash(cp *)",
+      "Bash(npm *)",
+      "Bash(npx *)",
+      "Bash(node *)",
+      "PowerShell(git *)",
+      "PowerShell(gh *)",
+      "PowerShell(npm *)",
+      "PowerShell(npx *)",
+      "PowerShell(New-Item *)",
+      "PowerShell(Copy-Item *)",
+      "PowerShell(Remove-Item *)",
+      "PowerShell(Get-ChildItem *)",
+      "PowerShell(Set-Content *)",
+      "PowerShell(Out-File *)"
     ]
   }
 }
