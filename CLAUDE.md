@@ -815,6 +815,147 @@ Generation checklist:
 
 Each script must be **as complete as possible**: maximize the number of features coherent with the concept. A basic script is not acceptable. Always think about logical extensions: admin commands, logs, cooldowns, animations, sounds, map blips, progression, statistics, economy integration, etc.
 
+A script without immersion is unfinished. Every interaction must have feedback — visual, audio, or both. See the **Immersion & Polish** section below.
+
+---
+
+## Immersion & Polish — mandatory
+
+Every script must feel alive. Bare `TriggerEvent` calls with no feedback are not acceptable. Apply every relevant layer below.
+
+### Animations
+
+Use `RequestAnimDict` / `TaskPlayAnim` for all player actions. Never leave an interaction without an animation.
+
+```lua
+local function playAnim(dict, anim, duration)
+    RequestAnimDict(dict)
+    while not HasAnimDictLoaded(dict) do Citizen.Wait(10) end
+    TaskPlayAnim(cache.ped, dict, anim, 8.0, -8.0, duration, 49, 0, false, false, false)
+    Citizen.Wait(duration)
+    ClearPedTasks(cache.ped)
+end
+
+-- Examples per context
+-- Hacking / searching:   'anim@heists@ornate_bank@hack',  'hack_loop'
+-- Picking up / looting:  'weapons@first_person@aim_rng@generic@projectile@sticky_bomb@', 'plant_floor'
+-- Repairing / crafting:  'mini@repair',                   'fixing_a_player'
+-- Drinking / eating:     'mp_player_intdrink',             'loop_bottle'
+-- Phone / typing:        'cellphone@',                    'cellphone_text_read_base'
+-- Surrendering / scared: 'random@arrests',                'idle_2_hands_up'
+```
+
+### Sounds
+
+Play ambient or feedback sounds with `PlaySoundFrontend` (UI/non-spatial) or `PlaySoundFromCoord` (world-space).
+
+```lua
+-- UI feedback (menus, success, error)
+PlaySoundFrontend(-1, 'SELECT',        'HUD_FRONTEND_DEFAULT_SOUNDSET', true)
+PlaySoundFrontend(-1, 'CANCEL',        'HUD_FRONTEND_DEFAULT_SOUNDSET', true)
+PlaySoundFrontend(-1, 'CHECKPOINT_COLLECTED', 'HUD_MINI_GAME_SOUNDSET', true)
+
+-- World-space (use player coords or object coords)
+local coords = GetEntityCoords(cache.ped)
+PlaySoundFromCoord(-1, 'ATM_WINDOW',   'SCRIPTS/ATMS', coords.x, coords.y, coords.z, 0, true, 20.0, false)
+PlaySoundFromCoord(-1, 'METAL_CRASH_HIGH', 'GTAO_FM_Events_Soundset', coords.x, coords.y, coords.z, 0, true, 30.0, false)
+```
+
+### Particles (PTFx)
+
+Use particles for fire, smoke, sparks, explosions, magic, etc.
+
+```lua
+local function spawnParticle(dict, fx, coords, scale)
+    RequestNamedPtfxAsset(dict)
+    while not HasNamedPtfxAssetLoaded(dict) do Citizen.Wait(10) end
+    UseParticleFxAssetNextCall(dict)
+    StartParticleFxLoopedAtCoord(fx, coords.x, coords.y, coords.z, 0.0, 0.0, 0.0, scale, false, false, false, false)
+end
+
+-- Examples
+-- spawnParticle('core',       'exp_grd_grenade',        coords, 1.0)  -- explosion
+-- spawnParticle('scr_rcpaparazzo', 'scr_meth_pipe_smoke', coords, 0.5) -- smoke
+-- spawnParticle('core',       'ent_dst_sparks',          coords, 1.0)  -- sparks
+```
+
+### Screen effects
+
+Use screen shaders for dramatic moments (explosion impact, stress, fever, etc.).
+
+```lua
+-- Brief impact flash
+AnimpostfxPlay('ExplosionJosh3', 500, false)
+
+-- Sustained tension (drug effect, injury, fear)
+AnimpostfxPlay('DrugsMichaelAliensFight', 0, true)
+Citizen.Wait(duration)
+AnimpostfxStop('DrugsMichaelAliensFight')
+
+-- Common shaders: 'HeistCelebPass', 'SuccessNeutral', 'Damage', 'DeathFailOut'
+```
+
+### Map blips
+
+Every script with a location must have a blip. Remove it when the activity ends.
+
+```lua
+local blip = AddBlipForCoord(coords.x, coords.y, coords.z)
+SetBlipSprite(blip, 431)          -- sprite ID (see FiveM blip list)
+SetBlipDisplay(blip, 4)
+SetBlipScale(blip, 0.8)
+SetBlipColour(blip, 1)            -- 1=red 2=green 3=blue 5=yellow
+SetBlipAsShortRange(blip, true)
+BeginTextCommandSetBlipName('STRING')
+AddTextComponentString('Location Name')
+EndTextCommandSetBlipName(blip)
+
+-- On cleanup:
+if DoesBlipExist(blip) then RemoveBlip(blip) end
+```
+
+### Progress bars (ox_lib)
+
+Every timed action must show a progress bar — never a raw `Citizen.Wait`.
+
+```lua
+local completed = lib.progressBar({
+    duration = 5000,
+    label    = 'Working...',
+    useWhileDead = false,
+    canCancel    = true,
+    disable = { move = true, car = true, combat = true },
+    anim    = { dict = 'mini@repair', clip = 'fixing_a_player' }
+})
+if not completed then return end -- player cancelled
+```
+
+### Notifications (ox_lib)
+
+Use `lib.notify` for rich in-game feedback — never raw chat prints.
+
+```lua
+lib.notify({ title = 'Success', description = 'Action completed.', type = 'success' })
+lib.notify({ title = 'Error',   description = 'Insufficient funds.', type = 'error'   })
+lib.notify({ title = 'Info',    description = 'Stand by...',         type = 'inform'  })
+```
+
+### Contextual immersion checklist
+
+Before closing the script, verify every interaction has **all applicable layers**:
+
+| Interaction type | Animation | Sound | Particle | Progress bar | Blip |
+|-----------------|-----------|-------|----------|--------------|------|
+| Looting / searching | ✓ | ✓ | — | ✓ | ✓ |
+| Hacking / cracking  | ✓ | ✓ | ✓ sparks | ✓ | ✓ |
+| Crafting / building | ✓ | ✓ | ✓ smoke | ✓ | ✓ |
+| Crime / illegal act | ✓ | ✓ | optional | ✓ | ✓ |
+| Purchase / exchange | ✓ | ✓ (cash) | — | — | ✓ |
+| Death / failure     | — | ✓ | ✓ | — | — |
+| Success / reward    | ✓ | ✓ | ✓ | — | — |
+
+A script that skips this table is not done.
+
 ---
 
 ## Self-verification — mandatory before closing
