@@ -102,40 +102,23 @@ screen:destroy() -- on cleanup
 Full library of GTA's built-in full-screen overlays. Zero custom HTML needed.
 
 ```lua
--- Job payout wall (heist-style: stats + cash counter + XP bar)
-Scaleform.ShowHeist(
-    "Mission Complete",
-    { { name = "Deliveries", value = 12 }, { name = "Time", value = "4:32" } },
-    money,  -- cash amount shown with counter animation
-    xp      -- XP amount
-)
-Scaleform.V.showHeistBanner = true   -- start render loop
-Citizen.Wait(6000)
-Scaleform.V.showHeistBanner = false  -- stop
+-- Job payout (heist-style: stats + cash counter + XP bar)
+Scaleform.ShowHeist("Mission Complete", { {name="Deliveries",value=12} }, money, xp)
+Scaleform.V.showHeistBanner = true; Citizen.Wait(6000); Scaleform.V.showHeistBanner = false
 
--- Countdown (synchronized timed events)
-Scaleform.ShowCountdown(3, 255, 100, 0)   -- 3-2-1 in orange
-Scaleform.V.showST = true
-Citizen.Wait(4000)
-Scaleform.V.showST = false
+-- Countdown
+Scaleform.ShowCountdown(3, 255, 100, 0)
+Scaleform.V.showST = true; Citizen.Wait(4000); Scaleform.V.showST = false
 
--- Results panel (multi-player outcome)
-Scaleform.ShowResultsPanel("Heist Results", "Downtown Bank", {
-    { label = "Cash stolen",   value = "$42,000" },
-    { label = "Guards killed", value = "3" }
-})
+-- Results panel
+Scaleform.ShowResultsPanel("Results", "Subtitle", { {label="Cash", value="$42k"} })
 
--- Mission briefing info panel
-Scaleform.ShowMissionInfoPanel({ title = "New Contract", sub = "Meet the contact", text = "Head to the docks at midnight." }, x, y, w)
-
--- GTA:O-style news feed notification (with texture)
-Scaleform.ShowGameFeed("WEAZEL NEWS", "BREAKING", "Armed robbery at Maze Bank", "weazel_news_logo", "tex_logo", false)
+-- News feed (with texture)
+Scaleform.ShowGameFeed("WEAZEL NEWS", "BREAKING", "Armed robbery", "txd", "tex", false)
 
 -- Saving indicator
-Scaleform.ShowSaving("Saving progress...")
-Scaleform.V.toggleSave = true
-Citizen.Wait(2000)
-Scaleform.V.toggleSave = false
+Scaleform.ShowSaving("Saving..."); Scaleform.V.toggleSave = true
+Citizen.Wait(2000); Scaleform.V.toggleSave = false
 ```
 
 **RP use cases**: job payout screen, heist end results, countdown before an event starts, mission briefing panel, in-universe news broadcast.
@@ -345,18 +328,12 @@ gh repo create one-eight-seven/187ScriptName --public --source=. --remote=origin
 
 ### After each feature or modification
 
-Every time you add a feature, fix a bug, or modify files during the same session, immediately commit and push:
-
 ```
 cd C:\Users\USER\Desktop\fivem-scripts\server-test\resources\[187]\187ScriptName
-git add .
-git commit -m "feat: [short description of what was added or changed]"
-git push
+git add . && git commit -m "feat: [what changed]" && git push
 ```
 
-Use clear, specific commit messages — e.g. `feat: add admin commands`, `fix: cooldown not resetting on death`, `feat: add map blips for job zones`.
-
-Never batch multiple unrelated changes into one commit. Commit after each logical unit of work.
+One commit per logical unit of work. Never batch unrelated changes.
 
 ---
 
@@ -380,22 +357,7 @@ Categories to draw from: Vehicles & Transport · Jobs & Economy · Roleplay & So
 
 ### Copy the design system assets
 
-Each resource with a UI must copy `_187design/` into `html/public/lib/`:
-```
-187ScriptName/
-└── html/
-    ├── public/
-    │   └── lib/
-    │       ├── 187.css   ← copied from _187design/
-    │       └── 187.js    ← copied from _187design/
-    ├── src/
-    │   ├── main.jsx
-    │   ├── App.jsx
-    │   └── components/
-    ├── index.html        ← Vite entry point
-    ├── package.json
-    └── vite.config.js
-```
+Copy `_187design/187.css` and `_187design/187.js` into `html/public/lib/` for every script with a UI.
 
 ### CSS variables — never modify
 ```css
@@ -546,45 +508,6 @@ C:\Users\USER\Desktop\fivem-scripts\server-test\resources\[187]\187ScriptName\
 
 ---
 
-## File architecture
-
-```
-187ScriptName/
-├── fxmanifest.lua
-├── config.lua
-├── server/
-│   └── main.lua
-├── client/
-│   └── main.lua
-├── html/                 ← if UI needed
-│   ├── public/
-│   │   └── lib/
-│   │       ├── 187.css
-│   │       └── 187.js
-│   ├── src/
-│   │   ├── main.jsx
-│   │   ├── App.jsx
-│   │   └── components/
-│   ├── dist/             ← built React output (committed)
-│   │   ├── index.html
-│   │   ├── lib/
-│   │   │   ├── 187.css
-│   │   │   └── 187.js
-│   │   └── assets/
-│   │       └── index.js
-│   ├── index.html        ← Vite entry
-│   ├── package.json
-│   └── vite.config.js
-├── framework/
-│   ├── esx.lua           ← ESX bridge functions
-│   ├── qbcore.lua        ← QBCore bridge functions
-│   └── standalone.lua    ← Standalone bridge functions
-├── locales/
-│   └── en.lua            ← all displayed strings here
-├── README.md             ← English documentation
-└── README.fr.md          ← French documentation
-```
-
 ---
 
 ## fxmanifest.lua — template
@@ -636,7 +559,7 @@ escrow_ignore {
 lua54 'yes'
 ```
 
-> **CFX Escrow lock**: `escrow_ignore` lists the files that remain readable after CFX locks the resource. All other Lua files (server/main.lua, client/main.lua) get encrypted. Only `config.lua` and `locales/en.lua` stay visible so server owners can configure the script.
+> `escrow_ignore` keeps config.lua, locales and framework bridges readable after CFX locks the resource. All other Lua files get encrypted.
 
 ---
 
@@ -805,54 +728,27 @@ end)
 
 ## Mandatory Lua patterns
 
-### Server-side validation (always)
 ```lua
+-- Server event (always validate source + data type first)
 RegisterNetEvent('187scriptname:action', function(data)
-    local source = source
-    if not source or source <= 0 then return end
-    if type(data) ~= 'table' then return end
-    -- logic...
+    local src = source
+    if src <= 0 or type(data) ~= 'table' then return end
 end)
-```
 
-### Callbacks (ox_lib)
-```lua
--- Server
-lib.callback.register('187scriptname:getData', function(source, param)
+-- Callback — server side
+lib.callback.register('187scriptname:getData', function(src, param)
     return { ok = true, items = {} }
 end)
-
--- Client
+-- Callback — client side
 local result = lib.callback.await('187scriptname:getData', false, param)
-if result.ok then
-    -- use result.items
-end
-```
 
-### Database
-```lua
--- Async
-MySQL.query('SELECT * FROM table WHERE col = ?', { value }, function(rows)
-    if rows[1] then -- ...
-end)
+-- Database
+local rows = MySQL.query.await('SELECT * FROM t WHERE col = ?', { value })
+MySQL.query('SELECT * FROM t WHERE col = ?', { value }, function(rows) end)
 
--- Sync (inside Citizen.CreateThread)
-local rows = MySQL.query.await('SELECT * FROM table WHERE col = ?', { value })
-```
-
-### NUI open / close
-```lua
--- Client — open
-local function openUI(data)
-    SetNuiFocus(true, true)
-    SendNUIMessage({ action = 'open', data = data })
-end
-
--- Client — close (called from NUI via callback)
-RegisterNUICallback('close', function(_, cb)
-    SetNuiFocus(false, false)
-    cb('ok')
-end)
+-- NUI open / close
+SetNuiFocus(true, true); SendNUIMessage({ action = 'open', data = data })
+RegisterNUICallback('close', function(_, cb) SetNuiFocus(false, false); cb('ok') end)
 ```
 
 ---
@@ -893,53 +789,7 @@ end
 
 ## README.md — English documentation template
 
-```markdown
-# [187] Script Name
-
-> Description 1-2 sentences. What the script brings to the server.
-
-## Preview
-<!-- Screenshot or GIF here -->
-
-## Dependencies
-| Resource | Link |
-|----------|------|
-| ox_lib | https://github.com/overextended/ox_lib |
-| oxmysql | https://github.com/overextended/oxmysql |
-
-## Installation
-1. Place `resource-name` in `resources/[187scripts]/`
-2. Add `ensure resource-name` in `server.cfg`
-3. Import `database.sql` if present
-4. Set `Config.Framework` to `'esx'`, `'qbcore'` or `'standalone'` in `config.lua`
-5. If needed, edit `framework/esx.lua` or `framework/qbcore.lua` to match your framework version
-
-## Features
-- [ ] Feature 1
-- [ ] Feature 2
-
-## How it works
-<!-- Detailed explanation of the script's mechanics, flow, and architecture -->
-
-## Configuration
-| Parameter | Default | Description |
-|-----------|---------|-------------|
-
-## Commands & Keybinds
-| Command | Role |
-|---------|------|
-
-## Exports
-| Export | Description |
-|--------|-------------|
-
-## Framework compatibility
-Works with **ESX**, **QBCore**, and **Standalone**. Set `Config.Framework` in `config.lua`.
-Each framework has its own bridge file in `framework/` — edit the one matching your setup if your version uses different function names.
-
----
-**187Scripts** — Quality FiveM Scripts
-```
+Sections in order: `# [187] Script Name` · tagline · `## Preview` · `## Dependencies` (ox_lib + oxmysql table) · `## Installation` (5 steps: place, ensure, sql, framework, bridge) · `## Features` (checklist) · `## How it works` (mechanics, flow, architecture) · `## Configuration` (table: param/default/description) · `## Commands & Keybinds` · `## Exports` · `## Framework compatibility` · footer `**187Scripts** — Quality FiveM Scripts`
 
 ---
 
