@@ -67,7 +67,6 @@ The project at `L:\Infinite\server\resources\[framework]\infinite` is an existin
 | Free-cam / spectator system | `common/utils/client/specmode.lua` |
 | Raycast from camera + 3D text | `common/utils/client/laser.lua` |
 | Damage number feedback | `common/utils/client/hitmarker.lua` |
-| Weather + time sync | `common/utils/client/weather.lua` |
 | Compass heading HUD | `common/utils/client/compass.lua` |
 | Full-screen text overlay | `common/utils/client/informations.lua` |
 | Weapon recoil override | `common/utils/client/recoil.lua` |
@@ -330,24 +329,6 @@ local bucket = Infinite.GetPlayerBucket(source)
 ```
 
 **RP use cases**: apartment interior, heist instance, private meeting room, hospital ward.
-
----
-
-### Weather & time — server-controlled events
-
-```lua
--- Server pushes weather state to all clients
-TriggerClientEvent('infinite:weather:sync', -1, {
-    weather     = 'THUNDER',
-    hour        = 2, minute = 0, second = 0,
-    freezeTime    = true,   -- lock clock at 2:00 AM
-    freezeWeather = true    -- lock weather until next push
-})
--- Restore after event:
-TriggerClientEvent('infinite:weather:sync', -1, { weather = 'CLEAR', freezeTime = false, freezeWeather = false, ... })
-```
-
-**RP use cases**: nighttime heist, storm disaster event, fog for a smuggling run.
 
 ---
 
