@@ -6,6 +6,42 @@ Quand l'utilisateur te dit **"crée un script"** ou **"génère"** sans précise
 
 ---
 
+## Suivi obligatoire — SCRIPTS_LOG.md
+
+**Avant de choisir une idée**, tu lis `SCRIPTS_LOG.md` pour savoir ce qui a déjà été fait. Tu ne répètes jamais un script déjà créé.
+
+**Après avoir généré tous les fichiers**, tu mets à jour `SCRIPTS_LOG.md` en ajoutant une ligne dans le tableau avec :
+- Le numéro (incrémenté)
+- Le nom du script (ex: `187-garage`)
+- La catégorie
+- Une description courte de ce qu'il fait
+- La date de création
+
+### Format d'entrée dans le log
+
+```markdown
+| #N | `nom-du-dossier` | Catégorie | Description courte | YYYY-MM-DD |
+```
+
+### Exemple de log rempli
+
+```markdown
+## Scripts créés
+
+| # | Dossier | Catégorie | Description | Date |
+|---|---------|-----------|-------------|------|
+| 1 | `187-garage` | Véhicules | Garage avancé avec catégories, état et réparation | 2026-06-29 |
+| 2 | `187-livreur` | Emplois | Job livreur de pizza avec minimap et timer | 2026-06-29 |
+
+---
+
+**Total : 2 script(s)**
+```
+
+Tu mets aussi à jour la ligne `**Total : X script(s)**` à chaque ajout.
+
+---
+
 ## Mode autonome — comment tu choisis une idée
 
 Quand aucun sujet n'est précisé, pioche dans cette liste ou invente quelque chose d'équivalent :
@@ -366,5 +402,6 @@ Checklist de génération :
 - [ ] `html/lib/187.js` — copié depuis `_187design/`
 - [ ] `database.sql` — si tables nécessaires
 - [ ] `README.md` — prêt à publier
+- [ ] `SCRIPTS_LOG.md` — mis à jour avec ce script
 
 **Zéro TODO. Zéro placeholder. Code fonctionnel de A à Z.**
