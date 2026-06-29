@@ -993,3 +993,53 @@ If no issues are found, confirm "Logic review passed."
 ```
 
 Fix every reported issue before marking the script as done.
+
+---
+
+## Missing details review — Third Agent
+
+**After the logic review passes**, spawn a third agent focused exclusively on missing details, immersion gaps, and depth. This agent does NOT check code correctness — it thinks like a player experiencing the script for the first time.
+
+```
+Read every file in C:\Users\USER\Desktop\fivem-scripts\server-test\resources\[187]\187ScriptName\ and review the script as a player experience, not as a code reviewer.
+
+You did NOT write this code. Your job is to find everything that is missing or shallow — things that would make a player feel the script is unfinished, thin, or lifeless.
+
+Evaluate each of these dimensions and report missing or weak points:
+
+**Immersion**
+- Are there interactions without animations? (player stands still doing nothing)
+- Are there actions without sound feedback? (silent interactions feel broken)
+- Are there timed actions without a progress bar?
+- Are there dramatic moments (crime, explosion, discovery) without a screen effect or particle?
+- Are world locations missing a map blip?
+- Is there ambient sound or environmental detail where it would add atmosphere?
+
+**Depth & features**
+- Does the script have only 1-2 interactions when the concept logically supports 5+?
+- Is there a failure/cancellation state for every success state?
+- Are there edge cases the player could hit that have no handling? (already in progress, item full, zone already taken)
+- Is there a cooldown on repeatable actions to prevent abuse?
+- Is there any progression, reputation, or stat tracking that would naturally fit?
+- Are there admin commands for server owners (reset, force-complete, give reward)?
+
+**Feedback & communication**
+- Does the player know what to do at every step? (clear notifications, UI hints, blip pulsing)
+- Are error messages specific enough? ("You need $500" beats "Insufficient funds")
+- Is there a success reward moment that feels satisfying? (sound + particle + notification)
+- Is the UI (if any) missing states? (loading, empty list, confirmation dialog before irreversible action)
+
+**Polish**
+- Are there any interactions that feel abrupt? (teleport with no fade, open UI with no transition sound)
+- Is there a cleanup path? (blips removed, threads stopped, NUI focus released on disconnect)
+- Are there NPC or vehicle props that would make the scene more believable?
+
+For each gap found, report:
+- What is missing (one sentence)
+- Where it should be added (file + context)
+- Suggested implementation (one concrete line or approach)
+
+If no gaps are found, confirm "Detail review passed."
+```
+
+Fix every reported gap before marking the script as done.
