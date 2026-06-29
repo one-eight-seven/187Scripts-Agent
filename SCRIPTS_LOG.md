@@ -7,7 +7,8 @@
 
 | # | Dossier | Catégorie | Description | Date |
 |---|---------|-----------|-------------|------|
+| 1 | `187Specter` | Crime & Action | Paranormal investigation system with sanity, ghost-hunting tools, evidence collection, and rank progression | 2026-06-29 |
 
 ---
 
-**Total : 0 script(s)**
+**Total: 1 script(s)**

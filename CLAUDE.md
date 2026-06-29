@@ -8,7 +8,9 @@ When the user says **"create a script"** or **"generate"** without specifying wh
 
 ## Language rule — English everywhere
 
-**All code, comments, locale strings, UI text, README, and variable names must be written in English.** No French anywhere — not in strings, not in comments, not in function names.
+**All code, comments, locale strings, UI text, and variable names must be written in English.** No French anywhere — not in strings, not in comments, not in function names.
+
+**Exception**: `README.fr.md` is the French documentation file — write it entirely in French. `README.md` remains English-only.
 
 ---
 
@@ -332,7 +334,8 @@ C:\Users\USER\Desktop\fivem-scripts\server-test\resources\[187]\187ScriptName\
 │   └── standalone.lua    ← Standalone bridge functions
 ├── locales/
 │   └── en.lua            ← all displayed strings here
-└── README.md
+├── README.md             ← English documentation
+└── README.fr.md          ← French documentation
 ```
 
 ---
@@ -679,7 +682,7 @@ Document all exposed exports in the README under a `## Exports` section.
 
 ---
 
-## README.md — publication template
+## README.md — English documentation template
 
 ```markdown
 # [187] Script Name
@@ -706,6 +709,9 @@ Document all exposed exports in the README under a `## Exports` section.
 - [ ] Feature 1
 - [ ] Feature 2
 
+## How it works
+<!-- Detailed explanation of the script's mechanics, flow, and architecture -->
+
 ## Configuration
 | Parameter | Default | Description |
 |-----------|---------|-------------|
@@ -714,17 +720,23 @@ Document all exposed exports in the README under a `## Exports` section.
 | Command | Role |
 |---------|------|
 
+## Exports
+| Export | Description |
+|--------|-------------|
+
 ## Framework compatibility
 Works with **ESX**, **QBCore**, and **Standalone**. Set `Config.Framework` in `config.lua`.
 Each framework has its own bridge file in `framework/` — edit the one matching your setup if your version uses different function names.
 
 ---
 **187Scripts** — Quality FiveM Scripts
+```
 
 ---
 
-<!-- French section below -->
+## README.fr.md — French documentation template
 
+```markdown
 # [187] Nom du Script
 
 > Description 1-2 phrases. Ce que le script apporte au serveur.
@@ -749,6 +761,9 @@ Each framework has its own bridge file in `framework/` — edit the one matching
 - [ ] Fonctionnalité 1
 - [ ] Fonctionnalité 2
 
+## Fonctionnement
+<!-- Explication détaillée du fonctionnement du script : mécanique, flux, architecture -->
+
 ## Configuration
 | Paramètre | Défaut | Description |
 |-----------|--------|-------------|
@@ -756,6 +771,10 @@ Each framework has its own bridge file in `framework/` — edit the one matching
 ## Commandes & Keybinds
 | Commande | Rôle |
 |----------|------|
+
+## Exports
+| Export | Description |
+|--------|-------------|
 
 ## Compatibilité framework
 Fonctionne avec **ESX**, **QBCore** et **Standalone**. Définir `Config.Framework` dans `config.lua`.
@@ -788,7 +807,8 @@ Generation checklist:
 - [ ] `html/public/lib/187.js` — copied from `_187design/`
 - [ ] `html/dist/` — pre-built React output (committed)
 - [ ] `database.sql` — if tables needed
-- [ ] `README.md` — bilingual (English primary, French below)
+- [ ] `README.md` — English documentation (full explanation of how the script works)
+- [ ] `README.fr.md` — French documentation (full explanation of how the script works)
 - [ ] `SCRIPTS_LOG.md` — updated with this script
 
 **Zero TODO. Zero placeholder. Functional code from A to Z.**
@@ -816,9 +836,9 @@ If anything is missing or incomplete, fix it immediately — same response, no n
 ```
 Read every file in C:\Users\USER\Desktop\fivem-scripts\server-test\resources\[187]\187ScriptName\ and review the code logic independently.
 
-You did NOT write this code. Use README.md and config.lua as your two reference points:
+You did NOT write this code. Use README.md, README.fr.md, and config.lua as your reference points:
 
-README.md → every feature listed there must have a concrete implementation in the Lua or React code.
+README.md / README.fr.md → every feature listed there must have a concrete implementation in the Lua or React code.
 config.lua → every Config key must be actively used somewhere in server/main.lua or client/main.lua. An unused Config key means a feature was declared but not implemented.
 
 Then also check:
