@@ -267,80 +267,17 @@ Infinite.DoScreenFadeIn(500)
 
 ---
 
-### Floating nametags — faction / health tags
+### Other patterns (read file before using)
 
-Displays a GTA MP-style gamer tag above a player with optional live health bar and admin badge.
-
-```lua
--- Show tags above a filtered list of players (e.g. same gang)
-local tags = Infinite.onRequestGamerTags(playerHandles, { health = true, admin = false })
-
--- Show above one specific player
-Infinite.onRequestGamerTagsForSpecificPlayer(playerPedHandle, { health = true })
-
--- Remove all
-Infinite.StopAllGamerTags()
-```
-
-**RP use cases**: gang member recognition, EMS patient health bar, admin overlay.
-
----
-
-### Named cameras — cinematic cuts
-
-```lua
--- Cut to a scripted camera pointing at an entity, blend in 1500ms
-local cam = Infinite.createCam('briefingCam', npcPedHandle, vector3(x, y, z))
-Citizen.Wait(5000)
-Infinite.deleteCam('briefingCam')  -- returns to player camera
-```
-
----
-
-### Raycast from camera — "look at to interact"
-
-```lua
--- Fire a ray from camera center, returns hit entity + world coords
-local hit, coords, entity = Target:RayCastGamePlayCamera(5.0)
-if hit and entity ~= 0 then
-    -- entity is whatever the player is looking at
-end
-
--- Full probe with material hash + surface normal
-local hit, worldPos, normal, entity, material = Target:TargetCoords(
-    { x = 0.5, y = 0.5 },  -- screen center
-    10.0,                   -- max distance
-    -1,                     -- flags (all)
-    cache.ped               -- ignore self
-)
-```
-
-**RP use cases**: inspect prop, pick up item, talk to NPC, aim-to-execute mechanic.
-
----
-
-### Routing buckets — private instances
-
-```lua
--- Server-side: isolate a player in a private instance
-Infinite.SetPlayerBucket(source, bucketId)   -- move to bucket
-Infinite.SetPlayerBucket(source, 0)          -- return to main world
-local bucket = Infinite.GetPlayerBucket(source)
-```
-
-**RP use cases**: apartment interior, heist instance, private meeting room, hospital ward.
-
----
-
-### Voice — server-side mute
-
-```lua
--- Server-side: mute a player (persists across reconnects via state bag)
-Infinite.mutePlayer(source, true)
-Infinite.mutePlayer(source, false)
-```
-
-**RP use cases**: mute dead players, silence spectators, interrogation room isolation.
+- **Floating nametags** (`gamertag.lua`) — `Infinite.onRequestGamerTags(handles, { health=true })` / `Infinite.StopAllGamerTags()`. RP: gang tags, EMS health bar, admin overlay.
+- **Named cameras** (`cam.lua`) — `Infinite.createCam('name', entity, coords)` / `Infinite.deleteCam('name')`. RP: briefing cinematic, dealership preview.
+- **Raycast from camera** (`addons/contextmenu/client/target.lua`) — `Target:RayCastGamePlayCamera(dist)` → hit, coords, entity. Full probe: `Target:TargetCoords(screenPos, dist, flags, ignoreEnt)` → hit, worldPos, normal, entity, material. RP: look-at-to-interact, ox_target replacement.
+- **Routing buckets** (`server/bucketmanager.lua`) — `Infinite.SetPlayerBucket(src, id)` / `Infinite.GetPlayerBucket(src)`. RP: apartment, heist instance, private room.
+- **Voice mute** (`server/voice.lua`) — `Infinite.mutePlayer(src, bool)`. RP: mute dead players, interrogation isolation.
+- **Compass** (`compass.lua`) — `startCompass(followCam)` / `stopCompass()`. Sends heading via NUI message.
+- **Recoil override** (`recoil.lua`) — `Infinite.setRecoil(values)` per weapon hash. RP: drug effects, gunsmith upgrades.
+- **Damage numbers** (`hitmarker.lua`) — `Infinite.setDrawHitmarker(bool)`. RP: combat feedback, health delta detection.
+- **Free-cam / spectator** (`specmode.lua`) — `Spectate:Spectate(pos)` toggles noclip + lock-on. RP: admin observe, director mode.
 
 ---
 
@@ -431,39 +368,7 @@ When asked to create a script (with or without a subject), **do not start genera
 
 The idea pool below is a reference for Agent 0, not a direct pick list:
 
-**Vehicles & Transport**
-- Advanced garage with categories and vehicle condition
-- Dealership with financing and test drive
-- Carjacking system
-- Illegal street race
-- Impound lot and fines
-
-**Jobs & Economy**
-- Pizza delivery job with dynamic minimap
-- Illegal miner (gems, random locations)
-- ATM hacker
-- Drug dealer with witness risk
-- Hot dog street vendor
-
-**Roleplay & Social**
-- Radio announcements with frequencies
-- Reputation / custom wanted level system
-- Marriage / family RP
-- Driver's license with exam
-
-**Crime & Action**
-- Scriptable bank heist
-- Arms trafficking (meeting point, timer, police alerted)
-- Prison system with activities
-- Private detective / surveillance
-- Kidnapping with ransom
-
-**UI & QoL**
-- Custom HUD (health, money, RP time)
-- Visual drag & drop inventory
-- Interactive map with custom points of interest
-- Notes / RP journal system
-- GTA Online-style mission briefing
+Categories to draw from: Vehicles & Transport · Jobs & Economy · Roleplay & Social · Crime & Action · UI & QoL.
 
 **Originality rule**: always pick the most original and uncommon idea. Avoid mainstream scripts unless the angle is genuinely fresh. The goal is scripts no one has seen before.
 
@@ -753,121 +658,22 @@ Config.Locale      = 'en'
 
 ## framework/ — bridge files (mandatory)
 
-Each script must ship three bridge files so server owners can adapt the framework calls to their exact version without touching the core logic. The `Config.Framework` value in `config.lua` controls which file is active at runtime.
+Each file guards itself: `if Config.Framework ~= 'xxx' then return end`, then declares `Framework = {}` and these 6 functions:
 
-Each file guards itself at the top — only one `Framework` table ever gets populated:
+| Function | ESX | QBCore | Standalone |
+|----------|-----|--------|------------|
+| `getPlayer(src)` | `ESX.GetPlayerFromId(src)` | `QBCore.Functions.GetPlayer(src)` | `{ source = src }` |
+| `getMoney(src)` | `xPlayer.getMoney()` | `player.PlayerData.money['cash']` | `playerMoney[src] or 0` |
+| `addMoney(src, n)` | `xPlayer.addMoney(n)` | `player.Functions.AddMoney('cash', n)` | `playerMoney[src] += n` |
+| `removeMoney(src, n)` | `xPlayer.removeMoney(n)` | `player.Functions.RemoveMoney('cash', n)` | `math.max(0, money - n)` |
+| `getJob(src)` | `xPlayer.job.name` | `player.PlayerData.job.name` | `'civilian'` |
+| `notify(src, msg, type)` | `TriggerClientEvent('esx:showNotification', src, msg)` | `TriggerClientEvent('QBCore:Notify', src, msg, type)` | `TriggerClientEvent('187:notify', src, msg, type)` |
 
-### framework/esx.lua
-```lua
-if Config.Framework ~= 'esx' then return end
+ESX init: `TriggerEvent('esx:getSharedObject', function(obj) ESX = obj end)`
+QBCore init: `local QBCore = exports['qb-core']:GetCoreObject()`
+Standalone money: `local playerMoney = {}` (server-side table)
 
-Framework = {}
-
-local ESX = nil
-TriggerEvent('esx:getSharedObject', function(obj) ESX = obj end)
-
-function Framework.getPlayer(source)
-    return ESX.GetPlayerFromId(source)
-end
-
-function Framework.getMoney(source)
-    local xPlayer = ESX.GetPlayerFromId(source)
-    return xPlayer and xPlayer.getMoney() or 0
-end
-
-function Framework.addMoney(source, amount)
-    local xPlayer = ESX.GetPlayerFromId(source)
-    if xPlayer then xPlayer.addMoney(amount) end
-end
-
-function Framework.removeMoney(source, amount)
-    local xPlayer = ESX.GetPlayerFromId(source)
-    if xPlayer then xPlayer.removeMoney(amount) end
-end
-
-function Framework.getJob(source)
-    local xPlayer = ESX.GetPlayerFromId(source)
-    return xPlayer and xPlayer.job.name or 'unemployed'
-end
-
-function Framework.notify(source, message, type)
-    TriggerClientEvent('esx:showNotification', source, message)
-end
-```
-
-### framework/qbcore.lua
-```lua
-if Config.Framework ~= 'qbcore' then return end
-
-Framework = {}
-
-local QBCore = exports['qb-core']:GetCoreObject()
-
-function Framework.getPlayer(source)
-    return QBCore.Functions.GetPlayer(source)
-end
-
-function Framework.getMoney(source)
-    local player = QBCore.Functions.GetPlayer(source)
-    return player and player.PlayerData.money['cash'] or 0
-end
-
-function Framework.addMoney(source, amount)
-    local player = QBCore.Functions.GetPlayer(source)
-    if player then player.Functions.AddMoney('cash', amount) end
-end
-
-function Framework.removeMoney(source, amount)
-    local player = QBCore.Functions.GetPlayer(source)
-    if player then player.Functions.RemoveMoney('cash', amount) end
-end
-
-function Framework.getJob(source)
-    local player = QBCore.Functions.GetPlayer(source)
-    return player and player.PlayerData.job.name or 'unemployed'
-end
-
-function Framework.notify(source, message, type)
-    TriggerClientEvent('QBCore:Notify', source, message, type or 'primary')
-end
-```
-
-### framework/standalone.lua
-```lua
-if Config.Framework ~= 'standalone' then return end
-
-Framework = {}
-
--- In standalone mode, money is managed via a simple server-side table.
--- Replace these functions with your own economy system if needed.
-local playerMoney = {}
-
-function Framework.getPlayer(source)
-    return { source = source }
-end
-
-function Framework.getMoney(source)
-    return playerMoney[source] or 0
-end
-
-function Framework.addMoney(source, amount)
-    playerMoney[source] = (playerMoney[source] or 0) + amount
-end
-
-function Framework.removeMoney(source, amount)
-    playerMoney[source] = math.max(0, (playerMoney[source] or 0) - amount)
-end
-
-function Framework.getJob(source)
-    return 'civilian'
-end
-
-function Framework.notify(source, message, type)
-    TriggerClientEvent('187:notify', source, message, type)
-end
-```
-
-> **Rule**: all money, job, and notification calls in `server/main.lua` must go through `Framework.*` — never call ESX or QBCore directly in the business logic. This way the server owner only edits the one framework file that matches their setup.
+> **Rule**: all money, job, and notification calls in `server/main.lua` must go through `Framework.*` — never call ESX or QBCore directly.
 
 ---
 
@@ -940,69 +746,17 @@ end)
 
 ## Cross-script compatibility — optional integrations
 
-Every script must work **standalone** with no other 187Scripts resource running. Integrations with other scripts are **soft/optional** — always guard with a resource state check before using them.
-
-### The golden rule
+Every script works **standalone**. Integrations are **soft/optional** — always guard with `GetResourceState`.
 
 ```lua
--- Always check before using another 187Scripts resource
-if GetResourceState('187Banking') == 'started' then
-    exports['187Banking']:logTransaction(source, amount, label)
+-- Soft integration wrapper (top of server/main.lua)
+local function try187Export(res, fn, ...)
+    if GetResourceState(res) == 'started' then exports[res][fn](...) end
 end
+-- Usage: try187Export('187Banking', 'logTransaction', source, amount, label)
 ```
 
-If the resource is not started, the block is silently skipped and the script continues normally.
-
-### Common integration points
-
-**Before writing any integration**, read `SCRIPTS_LOG.md` to know which 187Scripts resources actually exist in the pack. Only integrate with scripts that are listed there — never invent resource names.
-
-For each existing 187Script that is relevant to the current script, check its `exports` (read its `server/main.lua`) and integrate if it makes sense:
-
-- A script with transactions/economy → integrate with any existing banking/economy 187Script
-- A script with player actions → integrate with any existing stats/progression 187Script
-- A script with status effects → integrate with any existing HUD 187Script
-
-If no relevant 187Scripts exist yet in the log, skip the integration block entirely.
-
-### Standard integration wrapper (server-side)
-
-Wrap each integration in a helper at the top of `server/main.lua` so guards stay out of the business logic:
-
-```lua
--- Example: soft integration with an existing 187Script
-local function try187Export(resourceName, exportFn, ...)
-    if GetResourceState(resourceName) == 'started' then
-        exports[resourceName][exportFn](...)
-    end
-end
-```
-
-Call it like: `try187Export('187Banking', 'logTransaction', source, amount, label)`
-
-### Declare optional dependencies in fxmanifest
-
-```lua
--- Optional integrations — script works without these
--- optional_dependencies {
---     '187ScriptName'  -- list only scripts from SCRIPTS_LOG.md
--- }
-```
-
-Leave this commented out — it documents what integrations exist without enforcing them as hard requirements.
-
-### Each script must also expose its own exports
-
-So other scripts can integrate with it in return:
-
-```lua
--- In server/main.lua — expose what other scripts might need
-exports('getPlayerData', function(source)
-    -- return relevant data for this script
-end)
-```
-
-Document all exposed exports in the README under a `## Exports` section.
+**Rules**: only integrate with scripts listed in `SCRIPTS_LOG.md` — never invent names. Check `exports` in their `server/main.lua` first. Each script must also expose its own exports and document them in README `## Exports`. Comment out `optional_dependencies` in fxmanifest (documents without enforcing).
 
 ---
 
@@ -1078,53 +832,10 @@ Each framework has its own bridge file in `framework/` — edit the one matching
 
 ## README.fr.md — French documentation template
 
-```markdown
-# [187] Nom du Script
+Same structure as README.md, fully translated to French. Section names:
+- `## Aperçu` · `## Dépendances` · `## Installation` · `## Fonctionnalités` · `## Fonctionnement` · `## Configuration` · `## Commandes & Keybinds` · `## Exports` · `## Compatibilité framework`
 
-> Description 1-2 phrases. Ce que le script apporte au serveur.
-
-## Aperçu
-<!-- Screenshot ou GIF ici -->
-
-## Dépendances
-| Ressource | Lien |
-|-----------|------|
-| ox_lib | https://github.com/overextended/ox_lib |
-| oxmysql | https://github.com/overextended/oxmysql |
-
-## Installation
-1. Placer `nom-resource` dans `resources/[187scripts]/`
-2. Ajouter `ensure nom-resource` dans `server.cfg`
-3. Importer `database.sql` si présent
-4. Définir `Config.Framework` sur `'esx'`, `'qbcore'` ou `'standalone'` dans `config.lua`
-5. Si besoin, modifier `framework/esx.lua` ou `framework/qbcore.lua` pour correspondre à votre version du framework
-
-## Fonctionnalités
-- [ ] Fonctionnalité 1
-- [ ] Fonctionnalité 2
-
-## Fonctionnement
-<!-- Explication détaillée du fonctionnement du script : mécanique, flux, architecture -->
-
-## Configuration
-| Paramètre | Défaut | Description |
-|-----------|--------|-------------|
-
-## Commandes & Keybinds
-| Commande | Rôle |
-|----------|------|
-
-## Exports
-| Export | Description |
-|--------|-------------|
-
-## Compatibilité framework
-Fonctionne avec **ESX**, **QBCore** et **Standalone**. Définir `Config.Framework` dans `config.lua`.
-Chaque framework a son propre fichier bridge dans `framework/` — modifier celui qui correspond à votre setup si votre version utilise des noms de fonctions différents.
-
----
-**187Scripts** — Scripts FiveM de qualité
-```
+Installation steps translated. Footer: `**187Scripts** — Scripts FiveM de qualité`
 
 ---
 
@@ -1163,124 +874,21 @@ A script without immersion is unfinished. Every interaction must have feedback �
 
 ## Immersion & Polish — mandatory
 
-Every script must feel alive. Bare `TriggerEvent` calls with no feedback are not acceptable. Apply every relevant layer below.
+Every interaction must have feedback — visual, audio, or both. Never leave a bare `TriggerEvent` with no player response.
 
-### Animations
+**Animations** — `RequestAnimDict` → `TaskPlayAnim(cache.ped, dict, anim, 8.0, -8.0, duration, 49, ...)` → `ClearPedTasks`. Key dicts: `'anim@heists@ornate_bank@hack'` (hacking), `'mini@repair'` (crafting/repair), `'mp_player_intdrink'` (eating/drinking), `'cellphone@'` (phone), `'random@arrests'` (surrender).
 
-Use `RequestAnimDict` / `TaskPlayAnim` for all player actions. Never leave an interaction without an animation.
+**Sounds** — UI: `PlaySoundFrontend(-1, 'SELECT', 'HUD_FRONTEND_DEFAULT_SOUNDSET', true)`. World: `PlaySoundFromCoord(-1, 'ATM_WINDOW', 'SCRIPTS/ATMS', x, y, z, 0, true, 20.0, false)`.
 
-```lua
-local function playAnim(dict, anim, duration)
-    RequestAnimDict(dict)
-    while not HasAnimDictLoaded(dict) do Citizen.Wait(10) end
-    TaskPlayAnim(cache.ped, dict, anim, 8.0, -8.0, duration, 49, 0, false, false, false)
-    Citizen.Wait(duration)
-    ClearPedTasks(cache.ped)
-end
+**Particles** — `RequestNamedPtfxAsset(dict)` → `UseParticleFxAssetNextCall(dict)` → `StartParticleFxLoopedAtCoord(fx, x,y,z, 0,0,0, scale, ...)`. Dicts: `'core'` (sparks, explosion), `'scr_rcpaparazzo'` (smoke).
 
--- Examples per context
--- Hacking / searching:   'anim@heists@ornate_bank@hack',  'hack_loop'
--- Picking up / looting:  'weapons@first_person@aim_rng@generic@projectile@sticky_bomb@', 'plant_floor'
--- Repairing / crafting:  'mini@repair',                   'fixing_a_player'
--- Drinking / eating:     'mp_player_intdrink',             'loop_bottle'
--- Phone / typing:        'cellphone@',                    'cellphone_text_read_base'
--- Surrendering / scared: 'random@arrests',                'idle_2_hands_up'
-```
+**Screen effects** — `AnimpostfxPlay('ExplosionJosh3', 500, false)` (flash). Sustained: `AnimpostfxPlay('DrugsMichaelAliensFight', 0, true)` → `AnimpostfxStop(...)`. Common: `'HeistCelebPass'`, `'Damage'`, `'DeathFailOut'`.
 
-### Sounds
+**Blips** — `AddBlipForCoord` + `SetBlipSprite/Colour/Scale/AsShortRange` + `BeginTextCommandSetBlipName`. Always `RemoveBlip` on cleanup.
 
-Play ambient or feedback sounds with `PlaySoundFrontend` (UI/non-spatial) or `PlaySoundFromCoord` (world-space).
+**Progress bars** — `lib.progressBar({ duration, label, canCancel=true, disable={move,car,combat}, anim={dict,clip} })` — never raw `Citizen.Wait` for timed actions.
 
-```lua
--- UI feedback (menus, success, error)
-PlaySoundFrontend(-1, 'SELECT',        'HUD_FRONTEND_DEFAULT_SOUNDSET', true)
-PlaySoundFrontend(-1, 'CANCEL',        'HUD_FRONTEND_DEFAULT_SOUNDSET', true)
-PlaySoundFrontend(-1, 'CHECKPOINT_COLLECTED', 'HUD_MINI_GAME_SOUNDSET', true)
-
--- World-space (use player coords or object coords)
-local coords = GetEntityCoords(cache.ped)
-PlaySoundFromCoord(-1, 'ATM_WINDOW',   'SCRIPTS/ATMS', coords.x, coords.y, coords.z, 0, true, 20.0, false)
-PlaySoundFromCoord(-1, 'METAL_CRASH_HIGH', 'GTAO_FM_Events_Soundset', coords.x, coords.y, coords.z, 0, true, 30.0, false)
-```
-
-### Particles (PTFx)
-
-Use particles for fire, smoke, sparks, explosions, magic, etc.
-
-```lua
-local function spawnParticle(dict, fx, coords, scale)
-    RequestNamedPtfxAsset(dict)
-    while not HasNamedPtfxAssetLoaded(dict) do Citizen.Wait(10) end
-    UseParticleFxAssetNextCall(dict)
-    StartParticleFxLoopedAtCoord(fx, coords.x, coords.y, coords.z, 0.0, 0.0, 0.0, scale, false, false, false, false)
-end
-
--- Examples
--- spawnParticle('core',       'exp_grd_grenade',        coords, 1.0)  -- explosion
--- spawnParticle('scr_rcpaparazzo', 'scr_meth_pipe_smoke', coords, 0.5) -- smoke
--- spawnParticle('core',       'ent_dst_sparks',          coords, 1.0)  -- sparks
-```
-
-### Screen effects
-
-Use screen shaders for dramatic moments (explosion impact, stress, fever, etc.).
-
-```lua
--- Brief impact flash
-AnimpostfxPlay('ExplosionJosh3', 500, false)
-
--- Sustained tension (drug effect, injury, fear)
-AnimpostfxPlay('DrugsMichaelAliensFight', 0, true)
-Citizen.Wait(duration)
-AnimpostfxStop('DrugsMichaelAliensFight')
-
--- Common shaders: 'HeistCelebPass', 'SuccessNeutral', 'Damage', 'DeathFailOut'
-```
-
-### Map blips
-
-Every script with a location must have a blip. Remove it when the activity ends.
-
-```lua
-local blip = AddBlipForCoord(coords.x, coords.y, coords.z)
-SetBlipSprite(blip, 431)          -- sprite ID (see FiveM blip list)
-SetBlipDisplay(blip, 4)
-SetBlipScale(blip, 0.8)
-SetBlipColour(blip, 1)            -- 1=red 2=green 3=blue 5=yellow
-SetBlipAsShortRange(blip, true)
-BeginTextCommandSetBlipName('STRING')
-AddTextComponentString('Location Name')
-EndTextCommandSetBlipName(blip)
-
--- On cleanup:
-if DoesBlipExist(blip) then RemoveBlip(blip) end
-```
-
-### Progress bars (ox_lib)
-
-Every timed action must show a progress bar — never a raw `Citizen.Wait`.
-
-```lua
-local completed = lib.progressBar({
-    duration = 5000,
-    label    = 'Working...',
-    useWhileDead = false,
-    canCancel    = true,
-    disable = { move = true, car = true, combat = true },
-    anim    = { dict = 'mini@repair', clip = 'fixing_a_player' }
-})
-if not completed then return end -- player cancelled
-```
-
-### Notifications (ox_lib)
-
-Use `lib.notify` for rich in-game feedback — never raw chat prints.
-
-```lua
-lib.notify({ title = 'Success', description = 'Action completed.', type = 'success' })
-lib.notify({ title = 'Error',   description = 'Insufficient funds.', type = 'error'   })
-lib.notify({ title = 'Info',    description = 'Stand by...',         type = 'inform'  })
-```
+**Notifications** — `lib.notify({ title, description, type })` — types: `'success'` `'error'` `'inform'`.
 
 ### Contextual immersion checklist
 
@@ -1407,45 +1015,20 @@ Fix every reported issue before marking the script as done.
 **After the logic review passes**, spawn a third agent focused exclusively on missing details, immersion gaps, and depth. This agent does NOT check code correctness — it thinks like a player experiencing the script for the first time.
 
 ```
-Read every file in C:\Users\USER\Desktop\fivem-scripts\server-test\resources\[187]\187ScriptName\ and review the script as a player experience, not as a code reviewer.
+Read every file in C:\Users\USER\Desktop\fivem-scripts\server-test\resources\[187]\187ScriptName\ and find everything missing or shallow — things that make the script feel unfinished or lifeless. You did NOT write this code.
 
-You did NOT write this code. Your job is to find everything that is missing or shallow — things that would make a player feel the script is unfinished, thin, or lifeless.
+Check each dimension:
 
-Evaluate each of these dimensions and report missing or weak points:
+IMMERSION: interactions without animation · silent actions · timed actions without progress bar · dramatic moments without screen effect or particle · locations missing blip · no ambient sound where it would add atmosphere
 
-**Immersion**
-- Are there interactions without animations? (player stands still doing nothing)
-- Are there actions without sound feedback? (silent interactions feel broken)
-- Are there timed actions without a progress bar?
-- Are there dramatic moments (crime, explosion, discovery) without a screen effect or particle?
-- Are world locations missing a map blip?
-- Is there ambient sound or environmental detail where it would add atmosphere?
+DEPTH: fewer interactions than the concept supports · missing failure/cancel state for each success · unhandled edge cases (start twice, disconnect mid-action, zone already taken) · no cooldown · no progression or stat tracking · no admin commands
 
-**Depth & features**
-- Does the script have only 1-2 interactions when the concept logically supports 5+?
-- Is there a failure/cancellation state for every success state?
-- Are there edge cases the player could hit that have no handling? (already in progress, item full, zone already taken)
-- Is there a cooldown on repeatable actions to prevent abuse?
-- Is there any progression, reputation, or stat tracking that would naturally fit?
-- Are there admin commands for server owners (reset, force-complete, give reward)?
+FEEDBACK: player doesn't know what to do at each step · error messages too generic · no satisfying reward moment (sound + particle + notify) · UI missing states (loading, empty, confirmation)
 
-**Feedback & communication**
-- Does the player know what to do at every step? (clear notifications, UI hints, blip pulsing)
-- Are error messages specific enough? ("You need $500" beats "Insufficient funds")
-- Is there a success reward moment that feels satisfying? (sound + particle + notification)
-- Is the UI (if any) missing states? (loading, empty list, confirmation dialog before irreversible action)
+POLISH: abrupt transitions (no screen fade) · no cleanup path (blips, threads, NUI focus on disconnect) · NPC/prop missing where scene needs it
 
-**Polish**
-- Are there any interactions that feel abrupt? (teleport with no fade, open UI with no transition sound)
-- Is there a cleanup path? (blips removed, threads stopped, NUI focus released on disconnect)
-- Are there NPC or vehicle props that would make the scene more believable?
-
-For each gap found, report:
-- What is missing (one sentence)
-- Where it should be added (file + context)
-- Suggested implementation (one concrete line or approach)
-
-If no gaps are found, confirm "Detail review passed."
+For each gap: what's missing · file + context · one concrete fix.
+If none, confirm "Detail review passed."
 ```
 
 Fix every reported gap before marking the script as done.
@@ -1457,43 +1040,20 @@ Fix every reported gap before marking the script as done.
 **After the detail review passes**, spawn a fourth agent that thinks exclusively about the game design loop — not code, not immersion layers, but whether the script is genuinely fun and worth replaying.
 
 ```
-Read every file in C:\Users\USER\Desktop\fivem-scripts\server-test\resources\[187]\187ScriptName\ and evaluate the script as a game designer, not a developer.
+Read every file in C:\Users\USER\Desktop\fivem-scripts\server-test\resources\[187]\187ScriptName\ and evaluate as a game designer: is this worth playing more than once? You did NOT write this code.
 
-You did NOT write this code. You are not checking for bugs or missing animations. You are asking: is this script worth playing more than once?
+FIRST CONTACT: Is the entry point (blip/command/NPC) clear without a wiki? Does the player get enough context to start?
 
-Simulate the player journey:
+CORE LOOP: Is the repeating action varied enough after 5 cycles? Is there randomness or player decisions that change each run? Is risk/reward balanced?
 
-**First contact**
-- How does the player discover this script exists? (blip, command, NPC?)
-- Is the entry point clear and accessible without reading a wiki?
-- Is there a tutorial moment or enough contextual feedback to understand what to do?
+RETENTION: Progression system or stat that grows? Reason to return vs just grinding money? Social/competitive element? A rare outcome that creates memorable moments?
 
-**Core loop (minutes 2–15)**
-- What is the repeating action? Is it varied enough to not feel like a chore after 5 cycles?
-- Is there any randomness, dynamic element, or player decision that changes each run?
-- Is the risk/reward balance interesting? (too easy = boring, too punishing = frustrating)
-- Does the script react differently to skilled vs casual players?
+MAP CONSTRAINT: Does anything require a custom map object, new interior, or persistent world prop? (FORBIDDEN — flag it and suggest an existing GTA V location instead)
 
-**Retention (why come back)**
-- Is there a progression system, ranking, or stat that grows over time?
-- Is there a reason to do this script instead of just grinding money somewhere else?
-- Is there a social or competitive element (leaderboard, race, cooperation)?
-- Is there a rare/lucky outcome that creates memorable moments?
+SERVER IDENTITY: Would a player join this server specifically for this script? Is there one moment players would tell friends about?
 
-**Map constraint check**
-- Does the script rely on any custom map object, new interior, or persistent world prop? (FORBIDDEN — must use only existing GTA V locations and vanilla interiors)
-- If yes, flag it and suggest an alternative using an existing GTA V location
-
-**The "server identity" test**
-- Would a player specifically join this server because of this script?
-- Is there one moment in the script that players would tell their friends about?
-
-For each weakness found, report:
-- What is weak or missing (one sentence)
-- Why it matters for retention or fun
-- A concrete suggestion that works within FiveM constraints (no custom map, no new interiors)
-
-If no weaknesses are found, confirm "Player experience review passed."
+For each weakness: what's weak · why it hurts retention · concrete fix within FiveM constraints.
+If none, confirm "Player experience review passed."
 ```
 
 Fix every reported weakness before marking the script as done.
