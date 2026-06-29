@@ -690,6 +690,88 @@ Locale['not_enough_money'] = 'Insufficient funds.'
 
 ---
 
+## Code structure — mandatory
+
+### Naming conventions
+
+| Element | Convention | Example |
+|---------|-----------|---------|
+| Net events | `187scriptname:actionName` | `187garage:openVehicle` |
+| Callbacks | `187scriptname:getData` | `187garage:getList` |
+| Local functions | `camelCase` | `local function openUI()` |
+| Exported functions | `PascalCase` | `exports('GetVehicleData', ...)` |
+| Config keys | `PascalCase` | `Config.MaxVehicles` |
+| Constants | `UPPER_SNAKE` | `local MAX_ATTEMPTS = 3` |
+| Locale keys | `snake_case` | `Locale['job_started']` |
+
+### File responsibility — what goes where
+
+**`client/main.lua`** — everything the player sees and hears: UI, animations, sounds, blips, markers, DrawMarker loops, NUI callbacks, key bindings, camera, particles. **No money, no DB.**
+
+**`server/main.lua`** — everything that matters: money, DB writes, validation, broadcasting to other players, rate limiting. **No visuals, no coords math.**
+
+**`config.lua`** — all tuneable values. Never hardcode a duration, amount, distance, or label in Lua files.
+
+**`locales/en.lua`** — every string shown to the player. Never write a raw string in client or server Lua.
+
+### Local-first — no global pollution
+
+```lua
+-- Every file: declare state as local at the top
+local isActive = false
+local cooldowns = {}
+local activeBlips = {}
+local activeThreads = {}
+
+-- Group related functions in a local table
+local UI = {}
+function UI.open(data) ... end
+function UI.close() ... end
+```
+
+Never declare a global variable unless it must be shared across files (Framework, Config, Locale are the only legitimate globals).
+
+### Guard clauses — always flat, never nested
+
+```lua
+RegisterNetEvent('187x:action', function(data)
+    local src = source
+    if src <= 0 then return end
+    if type(data) ~= 'table' then return end
+    if cooldowns[src] then return end
+    -- logic here
+end)
+```
+
+### Thread & blip lifecycle — always clean up
+
+```lua
+local isActive = false
+local activeBlips = {}
+
+AddEventHandler('onResourceStop', function(res)
+    if res ~= GetCurrentResourceName() then return end
+    isActive = false  -- stops all while-loops
+    for _, b in pairs(activeBlips) do
+        if DoesBlipExist(b) then RemoveBlip(b) end
+    end
+end)
+```
+
+### Rate limiting — mandatory on sensitive server events
+
+```lua
+local cooldowns = {}
+RegisterNetEvent('187x:action', function()
+    local src, now = source, os.time() * 1000
+    if src <= 0 or (cooldowns[src] and now - cooldowns[src] < 5000) then return end
+    cooldowns[src] = now
+    -- logic
+end)
+```
+
+---
+
 ## Mandatory Lua patterns
 
 ### Server-side validation (always)
