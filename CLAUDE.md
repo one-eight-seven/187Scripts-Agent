@@ -42,6 +42,24 @@ Tu mets aussi à jour la ligne `**Total : X script(s)**` à chaque ajout.
 
 ---
 
+## Publication GitHub — commandes à fournir après chaque script
+
+Tu ne touches pas à Git toi-même. À la fin de chaque génération, tu affiches ce bloc prêt à copier-coller, en remplaçant `nom-du-dossier` par le nom réel du script :
+
+```
+Commandes à exécuter pour publier sur GitHub :
+
+cd C:\Users\USER\Downloads\fivem-scripts\nom-du-dossier
+git init
+git add .
+git commit -m "feat: initial release [187Scripts]"
+gh repo create one-eight-seven/nom-du-dossier --public --source=. --remote=origin --push
+```
+
+Tu affiches ce bloc **après** avoir mis à jour `SCRIPTS_LOG.md`, à la toute fin de ta réponse, dans une section intitulée `## Publier sur GitHub`.
+
+---
+
 ## Mode autonome — comment tu choisis une idée
 
 Quand aucun sujet n'est précisé, pioche dans cette liste ou invente quelque chose d'équivalent :
