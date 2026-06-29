@@ -326,6 +326,10 @@ C:\Users\USER\Desktop\fivem-scripts\server-test\resources\[187]\187ScriptName\
 │   ├── index.html        ← Vite entry
 │   ├── package.json
 │   └── vite.config.js
+├── framework/
+│   ├── esx.lua           ← ESX bridge functions
+│   ├── qbcore.lua        ← QBCore bridge functions
+│   └── standalone.lua    ← Standalone bridge functions
 ├── locales/
 │   └── en.lua            ← all displayed strings here
 └── README.md
@@ -346,7 +350,10 @@ version '1.0.0'
 shared_scripts {
     '@ox_lib/init.lua',
     'config.lua',
-    'locales/en.lua'
+    'locales/en.lua',
+    'framework/esx.lua',
+    'framework/qbcore.lua',
+    'framework/standalone.lua'
 }
 
 client_scripts {
@@ -370,7 +377,10 @@ server_scripts {
 
 escrow_ignore {
     'config.lua',
-    'locales/en.lua'
+    'locales/en.lua',
+    'framework/esx.lua',
+    'framework/qbcore.lua',
+    'framework/standalone.lua'
 }
 
 lua54 'yes'
@@ -393,6 +403,126 @@ Config.Locale      = 'en'
 -- Script-specific parameters below
 -- Config.MyValue = ...
 ```
+
+---
+
+## framework/ — bridge files (mandatory)
+
+Each script must ship three bridge files so server owners can adapt the framework calls to their exact version without touching the core logic. The `Config.Framework` value in `config.lua` controls which file is active at runtime.
+
+Each file guards itself at the top — only one `Framework` table ever gets populated:
+
+### framework/esx.lua
+```lua
+if Config.Framework ~= 'esx' then return end
+
+Framework = {}
+
+local ESX = nil
+TriggerEvent('esx:getSharedObject', function(obj) ESX = obj end)
+
+function Framework.getPlayer(source)
+    return ESX.GetPlayerFromId(source)
+end
+
+function Framework.getMoney(source)
+    local xPlayer = ESX.GetPlayerFromId(source)
+    return xPlayer and xPlayer.getMoney() or 0
+end
+
+function Framework.addMoney(source, amount)
+    local xPlayer = ESX.GetPlayerFromId(source)
+    if xPlayer then xPlayer.addMoney(amount) end
+end
+
+function Framework.removeMoney(source, amount)
+    local xPlayer = ESX.GetPlayerFromId(source)
+    if xPlayer then xPlayer.removeMoney(amount) end
+end
+
+function Framework.getJob(source)
+    local xPlayer = ESX.GetPlayerFromId(source)
+    return xPlayer and xPlayer.job.name or 'unemployed'
+end
+
+function Framework.notify(source, message, type)
+    TriggerClientEvent('esx:showNotification', source, message)
+end
+```
+
+### framework/qbcore.lua
+```lua
+if Config.Framework ~= 'qbcore' then return end
+
+Framework = {}
+
+local QBCore = exports['qb-core']:GetCoreObject()
+
+function Framework.getPlayer(source)
+    return QBCore.Functions.GetPlayer(source)
+end
+
+function Framework.getMoney(source)
+    local player = QBCore.Functions.GetPlayer(source)
+    return player and player.PlayerData.money['cash'] or 0
+end
+
+function Framework.addMoney(source, amount)
+    local player = QBCore.Functions.GetPlayer(source)
+    if player then player.Functions.AddMoney('cash', amount) end
+end
+
+function Framework.removeMoney(source, amount)
+    local player = QBCore.Functions.GetPlayer(source)
+    if player then player.Functions.RemoveMoney('cash', amount) end
+end
+
+function Framework.getJob(source)
+    local player = QBCore.Functions.GetPlayer(source)
+    return player and player.PlayerData.job.name or 'unemployed'
+end
+
+function Framework.notify(source, message, type)
+    TriggerClientEvent('QBCore:Notify', source, message, type or 'primary')
+end
+```
+
+### framework/standalone.lua
+```lua
+if Config.Framework ~= 'standalone' then return end
+
+Framework = {}
+
+-- In standalone mode, money is managed via a simple server-side table.
+-- Replace these functions with your own economy system if needed.
+local playerMoney = {}
+
+function Framework.getPlayer(source)
+    return { source = source }
+end
+
+function Framework.getMoney(source)
+    return playerMoney[source] or 0
+end
+
+function Framework.addMoney(source, amount)
+    playerMoney[source] = (playerMoney[source] or 0) + amount
+end
+
+function Framework.removeMoney(source, amount)
+    playerMoney[source] = math.max(0, (playerMoney[source] or 0) - amount)
+end
+
+function Framework.getJob(source)
+    return 'civilian'
+end
+
+function Framework.notify(source, message, type)
+    TriggerClientEvent('187:notify', source, message, type)
+end
+```
+
+> **Rule**: all money, job, and notification calls in `server/main.lua` must go through `Framework.*` — never call ESX or QBCore directly in the business logic. This way the server owner only edits the one framework file that matches their setup.
 
 ---
 
@@ -569,7 +699,8 @@ Document all exposed exports in the README under a `## Exports` section.
 1. Place `resource-name` in `resources/[187scripts]/`
 2. Add `ensure resource-name` in `server.cfg`
 3. Import `database.sql` if present
-4. Configure `config.lua`
+4. Set `Config.Framework` to `'esx'`, `'qbcore'` or `'standalone'` in `config.lua`
+5. If needed, edit `framework/esx.lua` or `framework/qbcore.lua` to match your framework version
 
 ## Features
 - [ ] Feature 1
@@ -583,8 +714,55 @@ Document all exposed exports in the README under a `## Exports` section.
 | Command | Role |
 |---------|------|
 
+## Framework compatibility
+Works with **ESX**, **QBCore**, and **Standalone**. Set `Config.Framework` in `config.lua`.
+Each framework has its own bridge file in `framework/` — edit the one matching your setup if your version uses different function names.
+
 ---
 **187Scripts** — Quality FiveM Scripts
+
+---
+
+<!-- French section below -->
+
+# [187] Nom du Script
+
+> Description 1-2 phrases. Ce que le script apporte au serveur.
+
+## Aperçu
+<!-- Screenshot ou GIF ici -->
+
+## Dépendances
+| Ressource | Lien |
+|-----------|------|
+| ox_lib | https://github.com/overextended/ox_lib |
+| oxmysql | https://github.com/overextended/oxmysql |
+
+## Installation
+1. Placer `nom-resource` dans `resources/[187scripts]/`
+2. Ajouter `ensure nom-resource` dans `server.cfg`
+3. Importer `database.sql` si présent
+4. Définir `Config.Framework` sur `'esx'`, `'qbcore'` ou `'standalone'` dans `config.lua`
+5. Si besoin, modifier `framework/esx.lua` ou `framework/qbcore.lua` pour correspondre à votre version du framework
+
+## Fonctionnalités
+- [ ] Fonctionnalité 1
+- [ ] Fonctionnalité 2
+
+## Configuration
+| Paramètre | Défaut | Description |
+|-----------|--------|-------------|
+
+## Commandes & Keybinds
+| Commande | Rôle |
+|----------|------|
+
+## Compatibilité framework
+Fonctionne avec **ESX**, **QBCore** et **Standalone**. Définir `Config.Framework` dans `config.lua`.
+Chaque framework a son propre fichier bridge dans `framework/` — modifier celui qui correspond à votre setup si votre version utilise des noms de fonctions différents.
+
+---
+**187Scripts** — Scripts FiveM de qualité
 ```
 
 ---
@@ -594,8 +772,11 @@ Document all exposed exports in the README under a `## Exports` section.
 Generation checklist:
 - [ ] `fxmanifest.lua` — exact dependencies + `escrow_ignore`
 - [ ] `config.lua` — everything configurable
+- [ ] `framework/esx.lua` — ESX bridge functions
+- [ ] `framework/qbcore.lua` — QBCore bridge functions
+- [ ] `framework/standalone.lua` — Standalone bridge functions
 - [ ] `locales/en.lua` — all strings in English
-- [ ] `server/main.lua` — complete server logic
+- [ ] `server/main.lua` — complete server logic (uses `Framework.*` only)
 - [ ] `client/main.lua` — complete client logic
 - [ ] `html/index.html` — Vite entry point
 - [ ] `html/package.json` — React + Vite deps
@@ -607,7 +788,7 @@ Generation checklist:
 - [ ] `html/public/lib/187.js` — copied from `_187design/`
 - [ ] `html/dist/` — pre-built React output (committed)
 - [ ] `database.sql` — if tables needed
-- [ ] `README.md` — ready to publish
+- [ ] `README.md` — bilingual (English primary, French below)
 - [ ] `SCRIPTS_LOG.md` — updated with this script
 
 **Zero TODO. Zero placeholder. Functional code from A to Z.**
