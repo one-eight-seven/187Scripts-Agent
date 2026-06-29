@@ -35,6 +35,58 @@ Any feature concept that requires a custom map, a new interior, or a non-vanilla
 
 ---
 
+## Reference base — technical inspiration
+
+The project at `L:\Infinite\server\resources\[framework]\infinite` is an existing codebase you can read to borrow **technical patterns only**.
+
+> **Critical distinction**: this base is a **mini-game framework** (races, ranked modes, kill-feeds, leaderboards). 187Scripts are exclusively **RP scripts**. Never borrow game design, modes, or mini-game concepts from it — only borrow implementation techniques.
+
+### What to read and when
+
+| Need | File to read |
+|------|-------------|
+| DUI (HTML rendered in 3D world) | `common/utils/client/dui.lua` |
+| Animation helpers | `common/utils/client/animation.lua` |
+| Audio / sound helpers | `common/utils/client/audio.lua` |
+| Blip management | `common/utils/client/blips.lua` |
+| Camera control | `common/utils/client/cam.lua` |
+| On-screen instructional buttons | `common/utils/client/instructional_buttons.lua` |
+| Marker helpers | `common/utils/client/marker.lua` |
+| Scaleform utilities | `common/utils/client/scaleform.lua` |
+| Timer utilities | `common/utils/client/timer.lua` |
+| Zone management | `common/utils/server/zone.lua` |
+
+### DUI — HTML displayed in the 3D world
+
+The DUI system renders any HTML page as a texture on a 3D plane in the game world (e.g. a screen on a wall, a billboard, a hologram). Use it when a script benefits from an in-world display rather than a standard NUI overlay.
+
+```lua
+-- Create a DUI surface in the world
+local screen = DUI:new({
+    url    = 'nui://187ScriptName/html/dist/dui.html',
+    width  = 1280,
+    height = 720,
+    pos    = vector3(x, y, z),   -- world position
+    rot    = vector3(0.0, 0.0, heading),
+    scale  = vector3(4.0, 2.0, 1.0)
+})
+
+-- In a render thread (Wait(0)):
+screen:draw()
+
+-- Send data to the DUI page (same as SendNUIMessage)
+SendDuiMessage(screen.duiObject, json.encode({ action = 'update', data = payload }))
+
+-- Cleanup
+screen:destroy()
+```
+
+The DUI HTML page is a separate minimal page (not the main NUI panel) — it receives messages via `window.addEventListener('message', ...)` exactly like a standard NUI page.
+
+**Good RP use cases for DUI**: ATM screen, shop display, police board, wanted poster, job briefing board, scoreboard on a wall, surveillance camera feed.
+
+---
+
 ## Native functions reference
 
 **All GTA V / FiveM native functions are listed here — no other source:**
