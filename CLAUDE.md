@@ -119,7 +119,9 @@ When no subject is specified, pick from this list or invent something equivalent
 - Notes / RP journal system
 - GTA Online-style mission briefing
 
-Choose the most fun and uncommon idea. Announce your choice with a short description of what the script does, then generate immediately.
+**Originality rule**: always pick the most original and uncommon idea. Avoid mainstream scripts (basic garage, simple job, standard shop) unless you have a genuinely fresh angle that makes it stand out from every other server. A concept already done a thousand times needs a twist that makes it unrecognizable — otherwise, skip it and pick something rarer. The goal is scripts no one has seen before.
+
+Announce your choice with a short description of what the script does and why it's original, then generate immediately.
 
 ---
 
