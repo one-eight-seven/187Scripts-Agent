@@ -14,6 +14,37 @@ When the user says **"create a script"** or **"generate"** without specifying wh
 
 ---
 
+## Technical constraints — hard limits
+
+These are engine-level limitations of FiveM / GTA V. No agent, no feature, no concept may work around them.
+
+**FORBIDDEN — never suggest or implement:**
+- Adding new map objects, buildings, or geometry to the world
+- Creating new interiors or modifying existing ones
+- Placing persistent props in the world that survive resource restart
+- Streaming custom `.ymap`, `.ytyp`, or IPL files not already in the base game
+
+**ALLOWED — these are fine:**
+- Using existing GTA V locations and buildings as-is (offices, warehouses, docks, etc.)
+- Activating **base-game IPLs only** — IPLs that ship with vanilla GTA V (e.g. `mp_m_freemode_01`, casino interior, Cayo Perico, etc.). No custom streamed IPLs.
+- Spawning temporary props via `CreateObject` that are deleted on cleanup/disconnect
+- Spawning and deleting NPCs or vehicles at runtime
+- Map blips, markers (`DrawMarker`), and text labels — these are overlays, not map objects
+
+Any feature concept that requires a custom map, a new interior, or a non-vanilla IPL must be redesigned to use an existing GTA V location instead.
+
+---
+
+## Native functions reference
+
+**All GTA V / FiveM native functions are listed here — no other source:**
+
+> https://github.com/citizenfx/natives
+
+Never invent, guess, or use a native that is not in that list. Before using any native, verify it exists there. This is the single source of truth for every `GetEntity*`, `Task*`, `Draw*`, `Play*`, `Set*`, and `Request*` call.
+
+---
+
 ## Mandatory tracking — SCRIPTS_LOG.md
 
 **Before choosing an idea**, read `SCRIPTS_LOG.md` to know what has already been done. Never repeat a script already created.
@@ -85,7 +116,11 @@ Never batch multiple unrelated changes into one commit. Commit after each logica
 
 ## Autonomous mode — how you choose an idea
 
-When no subject is specified, pick from this list or invent something equivalent:
+When asked to create a script (with or without a subject), **do not start generating code immediately**.
+
+**First**, spawn Agent 0 (Concept & Brief) — see the section below. Agent 0 will choose the concept, challenge its originality, and produce a complete feature brief. Only once that brief is returned do you start writing files.
+
+The idea pool below is a reference for Agent 0, not a direct pick list:
 
 **Vehicles & Transport**
 - Advanced garage with categories and vehicle condition
@@ -121,9 +156,7 @@ When no subject is specified, pick from this list or invent something equivalent
 - Notes / RP journal system
 - GTA Online-style mission briefing
 
-**Originality rule**: always pick the most original and uncommon idea. Avoid mainstream scripts (basic garage, simple job, standard shop) unless you have a genuinely fresh angle that makes it stand out from every other server. A concept already done a thousand times needs a twist that makes it unrecognizable — otherwise, skip it and pick something rarer. The goal is scripts no one has seen before.
-
-Announce your choice with a short description of what the script does and why it's original, then generate immediately.
+**Originality rule**: always pick the most original and uncommon idea. Avoid mainstream scripts unless the angle is genuinely fresh. The goal is scripts no one has seen before.
 
 ---
 
@@ -958,6 +991,70 @@ A script that skips this table is not done.
 
 ---
 
+## Concept & Brief — Agent 0
+
+**This is the first step of every script generation, before any file is written.**
+
+Spawn Agent 0 with this prompt (replace `[subject]` with the user's request, or `"autonomous — choose the best concept"` if none was given):
+
+```
+You are a FiveM game designer. Your job is to produce a complete concept brief for a new 187Scripts resource. You do NOT write any code.
+
+Subject: [subject]
+
+Step 1 — Read SCRIPTS_LOG.md at C:\Users\USER\Desktop\fivem-scripts\SCRIPTS_LOG.md to know every script already created. Never pick a concept already in that list.
+
+Step 2 — Choose a concept. Apply the originality rule hard: pick something rare, with a fresh angle. A common concept (garage, delivery, shop) needs a twist that makes it unrecognizable — otherwise skip it.
+
+Step 3 — Challenge your own concept with these questions:
+- What makes this unlike anything on a standard FiveM server?
+- Can it be done entirely with existing GTA V locations and vanilla interiors? (NO custom map, NO new buildings, NO persistent world objects — hard constraint)
+- Does it have at least 8 distinct player interactions or states?
+- Is there a reason for a player to come back after the first time?
+If the answer to any question is weak, revise the concept before continuing.
+
+Step 4 — Write the full brief using this structure:
+
+**Script name**: 187ScriptName (PascalCase, 187 prefix)
+**Category**: (Vehicles / Jobs / Crime / Roleplay / UI)
+**One-line pitch**: what it does and why it's original
+
+**GTA V locations used**: list existing real GTA locations (no custom map)
+
+**Complete feature list** (minimum 8, no maximum):
+- Feature 1 — description
+- Feature 2 — description
+- ...
+
+**Player journey** (minute by minute):
+- Minute 0-2: how the player discovers and starts
+- Minute 2-10: the core loop
+- Minute 10+: what keeps them engaged / reason to return
+
+**The hook**: one sentence — what makes a player say "this server has something special"
+
+**Failure & edge cases** (every success state needs a failure state):
+- What happens if the player dies mid-activity?
+- What happens if they disconnect?
+- What happens if they try to start twice?
+- What other edge cases exist for this concept?
+
+**Config keys to expose** (what server owners will want to tune):
+- Config.X = value — why
+
+**Locale strings needed**: list the key names (e.g. `job_started`, `not_enough_money`)
+
+**UI screens** (if a React UI is needed): list each screen/panel and its purpose
+
+**Integrations with existing 187Scripts**: read SCRIPTS_LOG.md — list any existing script worth integrating with and how
+
+Output only the brief. No code. No filler. Be specific and concrete.
+```
+
+Once Agent 0 returns the brief, announce the concept to the user in 2-3 sentences, then immediately start generating all files based on that brief. Every feature in the brief must be implemented — no picking and choosing.
+
+---
+
 ## Self-verification — mandatory before closing
 
 **After generating all files and updating SCRIPTS_LOG.md**, re-read every file you just wrote and verify:
@@ -1043,3 +1140,51 @@ If no gaps are found, confirm "Detail review passed."
 ```
 
 Fix every reported gap before marking the script as done.
+
+---
+
+## Player experience review — Fourth Agent
+
+**After the detail review passes**, spawn a fourth agent that thinks exclusively about the game design loop — not code, not immersion layers, but whether the script is genuinely fun and worth replaying.
+
+```
+Read every file in C:\Users\USER\Desktop\fivem-scripts\server-test\resources\[187]\187ScriptName\ and evaluate the script as a game designer, not a developer.
+
+You did NOT write this code. You are not checking for bugs or missing animations. You are asking: is this script worth playing more than once?
+
+Simulate the player journey:
+
+**First contact**
+- How does the player discover this script exists? (blip, command, NPC?)
+- Is the entry point clear and accessible without reading a wiki?
+- Is there a tutorial moment or enough contextual feedback to understand what to do?
+
+**Core loop (minutes 2–15)**
+- What is the repeating action? Is it varied enough to not feel like a chore after 5 cycles?
+- Is there any randomness, dynamic element, or player decision that changes each run?
+- Is the risk/reward balance interesting? (too easy = boring, too punishing = frustrating)
+- Does the script react differently to skilled vs casual players?
+
+**Retention (why come back)**
+- Is there a progression system, ranking, or stat that grows over time?
+- Is there a reason to do this script instead of just grinding money somewhere else?
+- Is there a social or competitive element (leaderboard, race, cooperation)?
+- Is there a rare/lucky outcome that creates memorable moments?
+
+**Map constraint check**
+- Does the script rely on any custom map object, new interior, or persistent world prop? (FORBIDDEN — must use only existing GTA V locations and vanilla interiors)
+- If yes, flag it and suggest an alternative using an existing GTA V location
+
+**The "server identity" test**
+- Would a player specifically join this server because of this script?
+- Is there one moment in the script that players would tell their friends about?
+
+For each weakness found, report:
+- What is weak or missing (one sentence)
+- Why it matters for retention or fun
+- A concrete suggestion that works within FiveM constraints (no custom map, no new interiors)
+
+If no weaknesses are found, confirm "Player experience review passed."
+```
+
+Fix every reported weakness before marking the script as done.
