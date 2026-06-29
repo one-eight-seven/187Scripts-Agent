@@ -692,6 +692,37 @@ Locale['not_enough_money'] = 'Insufficient funds.'
 
 ## Code structure — mandatory
 
+### Internal file layout — always in this order
+
+**`client/main.lua`**
+```
+1. Local state variables       (isActive, cooldowns, activeBlips, activeThreads)
+2. Helper / utility functions  (local function playAnim, local function openUI...)
+3. Core logic functions        (local function startJob, local function cancelJob...)
+4. NUI callbacks               (RegisterNUICallback...)
+5. Net events                  (RegisterNetEvent / AddEventHandler...)
+6. Key mappings & commands     (RegisterKeyMapping, RegisterCommand...)
+7. Thread initialization       (Citizen.CreateThread — zones, markers, loops)
+8. Resource lifecycle          (AddEventHandler 'onResourceStop' — cleanup)
+```
+
+**`server/main.lua`**
+```
+1. Local state variables       (cooldowns, activeSessions, playerData cache)
+2. Helper functions            (local function try187Export, local function log...)
+3. Database functions          (local function fetchPlayer, local function saveData...)
+4. Business logic functions    (local function processAction, local function reward...)
+5. Net events                  (RegisterNetEvent — one per player action)
+6. Callbacks                   (lib.callback.register...)
+7. Admin commands              (RegisterCommand with ace permission check)
+8. Exports                     (exports('functionName', function(src)...))
+9. Resource lifecycle          (AddEventHandler 'onResourceStop')
+```
+
+Every file must follow this order. A reviewer reading the file should never have to search for where state is declared or where events are registered.
+
+---
+
 ### Naming conventions
 
 | Element | Convention | Example |
