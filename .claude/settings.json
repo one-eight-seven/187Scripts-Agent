@@ -1,23 +1,13 @@
 {
   "permissions": {
     "allow": [
-      "Bash(git *)",
-      "Bash(gh *)",
-      "Bash(mkdir *)",
-      "Bash(cp *)",
-      "Bash(npm *)",
-      "Bash(npx *)",
-      "Bash(node *)",
-      "PowerShell(git *)",
-      "PowerShell(gh *)",
-      "PowerShell(npm *)",
-      "PowerShell(npx *)",
-      "PowerShell(New-Item *)",
-      "PowerShell(Copy-Item *)",
-      "PowerShell(Remove-Item *)",
-      "PowerShell(Get-ChildItem *)",
-      "PowerShell(Set-Content *)",
-      "PowerShell(Out-File *)"
+      "Bash(*)",
+      "PowerShell(*)",
+      "Write(*)",
+      "Edit(*)",
+      "WebFetch(*)",
+      "WebSearch(*)",
+      "Agent(*)"
     ]
   }
 }
